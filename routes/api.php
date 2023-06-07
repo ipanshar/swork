@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CabinetController;
 use Illuminate\Http\Request;
@@ -30,3 +31,6 @@ Route::post('/auth/recovery-token', [AuthController::class,'recoveryToken']);
 Route::post('/auth/level', [AuthController::class,'level'])->middleware('auth:sanctum');
 Route::post('/cabinet/mysalary', [CabinetController::class,'mySalary'])->middleware('auth:sanctum');
 Route::post('/cabinet/myprofile', [CabinetController::class,'myProfile'])->middleware('auth:sanctum');
+
+Route::post('/admin/users',[AdminController::class,'users'])->middleware('auth:sanctum');
+Route::post('/admin/uplevel',[AdminController::class,'uplevel'])->middleware('auth:sanctum');
