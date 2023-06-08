@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CabinetController;
+use App\Http\Controllers\Api\ManegmantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,3 +35,9 @@ Route::post('/cabinet/myprofile', [CabinetController::class,'myProfile'])->middl
 
 Route::post('/admin/users',[AdminController::class,'users'])->middleware('auth:sanctum');
 Route::post('/admin/uplevel',[AdminController::class,'uplevel'])->middleware('auth:sanctum');
+
+Route::post('/managment/create-counterparty',[ManegmantController::class,'createCounterparty'])->middleware('auth:sanctum');
+Route::post('/managment/update-counterparty',[ManegmantController::class,'updateCounterparty'])->middleware('auth:sanctum');
+Route::post('/managment/update-counterparty-phone',[ManegmantController::class,'updateCounterpartyPhone'])->middleware('auth:sanctum');
+Route::post('/managment/counterparties',[ManegmantController::class,'counterparties'])->middleware('auth:sanctum');
+Route::post('/managment/counterparty',[ManegmantController::class,'counterparty'])->middleware('auth:sanctum');
