@@ -21,5 +21,5 @@ class CabinetController extends Controller
          'created_at'=>$user->created_at,
       ]);
    }
-   
+
 }
