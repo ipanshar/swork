@@ -55,6 +55,8 @@ class DatabaseSeeder extends Seeder
         // Status::create(['name'=>'Отменено']);
         // Status::create(['name'=>'Проведено']);
         // Status::create(['name'=>'Выставлено']);
+       // Status::create(['name'=>'Ликвидация']);
+        // Status::create(['name'=>'Отгружено']);
     }
     
 }

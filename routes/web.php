@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ManegmantController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MailController;
 
@@ -17,3 +18,4 @@ use App\Http\Controllers\MailController;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('api/managment/shk_box',[ManegmantController::class,'shkBox']);

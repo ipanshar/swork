@@ -240,7 +240,8 @@ class TaskController extends Controller
     }
     public function operations_box(Request $request)
     {
-        $operations_box = DB::table('operations')->leftJoin('articles', 'operations.article_id', '=', 'articles.id')->where('operations.box_id', "=", $request->box_id)->where('operations.application_id', $request->id)
+        $user = User::where('email', $request->email)->first();
+        $operations_box = DB::table('operations')->leftJoin('articles', 'operations.article_id', '=', 'articles.id')->where('operations.user_id', "=", $user->id)->where('operations.box_id', "=", $request->box_id)->where('operations.application_id', $request->id)
             ->select('operations.id as operation_id', DB::raw('concat( articles.name,"-", COALESCE(articles.size,""),"- ", COALESCE(articles.code,"") )as article_name'), 'operations.num')->get();
         return $operations_box;
     }
@@ -248,7 +249,7 @@ class TaskController extends Controller
     public function detal_box(Request $request)
     {
         $user = User::where('email', $request->email)->first();
-        $box = Box::where('application_id', $request->application_id)->where('user_id', $user->id)->get();
+        $box = Db::table('boxes')->where('boxes.application_id','=', $request->application_id)->leftJoin('users','boxes.user_id','=','users.id')->select('boxes.id as id','boxes.name as name','users.name as user')->get();
         $operations_box = DB::table('operations')->leftJoin('articles', 'operations.article_id', '=', 'articles.id')->where('operations.user_id', "=", $user->id)->where('operations.application_id', $request->application_id)
             ->select('operations.box_id as box_id', 'operations.id as operation_id', DB::raw('concat( articles.name," sz:", COALESCE(articles.size,"")," шк:", COALESCE(articles.code,"") )as article_name'), 'operations.num')->get();
         $num_all = Operation::where('application_id', $request->application_id)->select(DB::raw('sum(num) as num_all'))->first();

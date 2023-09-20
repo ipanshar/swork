@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Application;
+use App\Models\Box;
 use App\Models\Counterparty;
+use App\Models\Operation;
 use App\Models\Organization;
 use App\Models\Service;
 use App\Models\Subapplication;
@@ -13,6 +15,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use PDF;
 
 class ManegmantController extends Controller
 {
@@ -339,7 +342,7 @@ class ManegmantController extends Controller
                 'message' => 'На совершение операции, у вас не достаточно полномочий'
             ], 401);
         }
-        try{
+        try {
             $valdate = Validator::make(
                 $request->all(),
                 [
@@ -348,7 +351,8 @@ class ManegmantController extends Controller
                     'anotation' => 'max:250',
                     'razbivka' => 'required'
                 ]
-            );if ($valdate->fails()) {
+            );
+            if ($valdate->fails()) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Не удалось сохранить! формат данных не соответствует инструкции',
@@ -363,18 +367,18 @@ class ManegmantController extends Controller
                 'description' => $request->anotation,
                 'create_user_id' => $user->id,
             ]);
-            $datas=$request->service_data;
-            foreach($datas as $data){
-                if($data['service_id']>0){
+            $datas = $request->service_data;
+            foreach ($datas as $data) {
+                if ($data['service_id'] > 0) {
                     $subaplication = Subapplication::create([
-                    'application_id'=>$request->id,
-                    'organization_id'=>$request->organization_id,
-                    'service_id'=>$data['service_id'],
-                    'service_num'=>$data['num'],
-                    'rate'=>$data['rate'],
-                    'description'=>$data['description'],
-                    'user_id'=>$user->id,
-                ]);
+                        'application_id' => $request->id,
+                        'organization_id' => $request->organization_id,
+                        'service_id' => $data['service_id'],
+                        'service_num' => $data['num'],
+                        'rate' => $data['rate'],
+                        'description' => $data['description'],
+                        'user_id' => $user->id,
+                    ]);
                 }
             }
             return response()->json([
@@ -398,7 +402,7 @@ class ManegmantController extends Controller
                 'message' => 'На совершение операции, у вас не достаточно полномочий'
             ], 401);
         }
-        try{
+        try {
             $valdate = Validator::make(
                 $request->all(),
                 [
@@ -407,31 +411,32 @@ class ManegmantController extends Controller
                     'anotation' => 'max:250',
                     'razbivka' => 'required'
                 ]
-            );if ($valdate->fails()) {
+            );
+            if ($valdate->fails()) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Не удалось сохранить! формат данных не соответствует инструкции',
                     'errors' => $valdate->errors()
                 ], 401);
             }
-            $application = Application::where('id',$request->id)->first(); 
+            $application = Application::where('id', $request->id)->first();
             $application->description = $request->anotation;
             $application->razbivka = $request->razbivka;
             $application->update_user_id = $user->id;
             $application->save();
-            $delete=Subapplication::where('application_id',$request->id)->delete();
-            $datas=$request->service_data;
-            foreach($datas as $data){
-                if($data['service_id']>0){
+            $delete = Subapplication::where('application_id', $request->id)->delete();
+            $datas = $request->service_data;
+            foreach ($datas as $data) {
+                if ($data['service_id'] > 0) {
                     $subaplication = Subapplication::create([
-                    'application_id'=>$request->id,
-                    'organization_id'=>$request->organization_id,
-                    'service_id'=>$data['service_id'],
-                    'service_num'=>$data['num'],
-                    'rate'=>$data['rate'],
-                    'description'=>$data['description'],
-                    'user_id'=>$user->id,
-                ]);
+                        'application_id' => $request->id,
+                        'organization_id' => $request->organization_id,
+                        'service_id' => $data['service_id'],
+                        'service_num' => $data['num'],
+                        'rate' => $data['rate'],
+                        'description' => $data['description'],
+                        'user_id' => $user->id,
+                    ]);
                 }
             }
             return response()->json([
@@ -446,38 +451,44 @@ class ManegmantController extends Controller
         }
     }
 
-    public function aplications(Request $request){
-        
-        $application = DB::table('applications')->leftJoin('subjects','applications.subject_id','=','subjects.id')
-        ->leftJoin('organizations','applications.organization_id','=','organizations.id')->leftJoin('counterparties','organizations.counterparty_id','=','counterparties.id')
-        ->leftJoin('users','applications.create_user_id','users.id')->leftJoin('statuses','applications.status_id','=','statuses.id')
-        ->select('applications.id as id',DB::RAW('CONCAT(organizations.name, "-" ,counterparties.name)as organization'),'subjects.name as subject','applications.razbivka as razbivka','users.name as name','applications.created_at as created_at','applications.description as description','applications.status_id as status_id','statuses.name as status','applications.organization_id as organization_id' )
-        ->whereIn('applications.status_id',$request->status_id)->orderBy('id','desc')->paginate(20);
-       //
-       $cur_page=$application->currentPage();
-       $last_page=$application->lastPage();
-       $dd=$application->items() ;
-       $dada=[];
-       foreach($dd as $d){
-        $subApp= DB::table('subapplications')->leftJoin('services','subapplications.service_id','=','services.id')->leftJoin('valutas','services.valuta_id','=','valutas.id')
-        ->where('subapplications.application_id','=',$d->id)
-        ->select(DB::raw('GROUP_CONCAT(services.name,":", subapplications.service_num,"x",subapplications.rate,valutas.symbol SEPARATOR " | ") as gr'))->get();
-        $val=['id'=>$d->id,
-        'organization'=>$d->organization,
-        'subject'=>$d->subject,
-        'services'=> $subApp[0]->gr,
-        'name'=>$d->name,
-        'created_at'=>$d->created_at,
-        'razbivka'=>$d->razbivka,
-        'description'=>$d->description,
-        'status_id'=>$d->status_id,
-        'status'=>$d->status,
-    ];
-        array_push($dada, $val);
-       }
-       $page['cur_page']=$cur_page;
-       $page['last_page']=$last_page;
-       $page['data']=$dada;
+    public function aplications(Request $request)
+    {
+
+        $application = DB::table('applications')->leftJoin('subjects', 'applications.subject_id', '=', 'subjects.id')
+            ->leftJoin('organizations', 'applications.organization_id', '=', 'organizations.id')->leftJoin('counterparties', 'organizations.counterparty_id', '=', 'counterparties.id')
+            ->leftJoin('users', 'applications.create_user_id', 'users.id')->leftJoin('statuses', 'applications.status_id', '=', 'statuses.id')
+            ->select('applications.id as id', DB::RAW('CONCAT(organizations.name, "-" ,counterparties.name)as organization'), 'subjects.name as subject', 'applications.razbivka as razbivka', 'users.name as name', 'applications.created_at as created_at', 'applications.description as description', 'applications.status_id as status_id', 'statuses.name as status', 'applications.organization_id as organization_id')
+            ->whereIn('applications.status_id', $request->status_id)->orderBy('id', 'desc')->paginate(20);
+        //
+        $cur_page = $application->currentPage();
+        $last_page = $application->lastPage();
+        $dd = $application->items();
+        $dada = [];
+        foreach ($dd as $d) {
+            $box = Box::where('application_id', $d->id)->count();
+            $operation = Operation::where('application_id', $d->id)->sum('num');
+            $subApp = DB::table('subapplications')->leftJoin('services', 'subapplications.service_id', '=', 'services.id')->leftJoin('valutas', 'services.valuta_id', '=', 'valutas.id')
+                ->where('subapplications.application_id', '=', $d->id)
+                ->select(DB::raw('GROUP_CONCAT(services.name,":", subapplications.service_num,"x",subapplications.rate,valutas.symbol SEPARATOR " | ") as gr'))->get();
+            $val = [
+                'id' => $d->id,
+                'organization' => $d->organization,
+                'subject' => $d->subject,
+                'services' => $subApp[0]->gr,
+                'name' => $d->name,
+                'created_at' => $d->created_at,
+                'razbivka' => $d->razbivka,
+                'description' => $d->description,
+                'status_id' => $d->status_id,
+                'status' => $d->status,
+                'box' => $box,
+                'operation' => $operation,
+            ];
+            array_push($dada, $val);
+        }
+        $page['cur_page'] = $cur_page;
+        $page['last_page'] = $last_page;
+        $page['data'] = $dada;
         return $page;
     }
 
@@ -490,24 +501,25 @@ class ManegmantController extends Controller
                 'message' => 'На совершение операции, у вас не достаточно полномочий'
             ], 401);
         }
-        try{
+        try {
             $valdate = Validator::make(
                 $request->all(),
                 [
                     'id' => 'required|numeric',
                     'status_id' => 'required|numeric',
                 ]
-            );if ($valdate->fails()) {
+            );
+            if ($valdate->fails()) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Не удалось обновить! формат данных не соответствует инструкции',
                     'errors' => $valdate->errors()
                 ], 401);
             }
-            $application = Application::where( 'id', $request->id)->first();
-            $application->status_id= $request->status_id;
+            $application = Application::where('id', $request->id)->first();
+            $application->status_id = $request->status_id;
             $application->update_user_id = $user->id;
-           $application->save();
+            $application->save();
             return response()->json([
                 'status' => true,
                 'message' =>  'Задача обновлена'
@@ -519,13 +531,53 @@ class ManegmantController extends Controller
             ], 500);
         }
     }
-    public function appSub(Request $request){
-        $application=DB::table('applications')->leftJoin('organizations','applications.organization_id','=','organizations.id')->leftJoin('subjects','applications.subject_id','subjects.id')
-        ->leftJoin('counterparties','organizations.counterparty_id','=','counterparties.id')->where('applications.id','=',$request->id)->select(DB::raw('concat(organizations.name, "-",counterparties.name) as organization'),'subjects.name as subject',
-        'applications.description as anotation','applications.razbivka as razbivka','applications.organization_id')->get();
-        $subaplication=Subapplication::where('application_id',$request->id)->select('service_id','service_num as num','rate','description')->get();
-        $data['application']=$application;
-        $data['subaplication']=$subaplication;
+    public function appSub(Request $request)
+    {
+        $application = DB::table('applications')->leftJoin('organizations', 'applications.organization_id', '=', 'organizations.id')->leftJoin('subjects', 'applications.subject_id', 'subjects.id')
+            ->leftJoin('counterparties', 'organizations.counterparty_id', '=', 'counterparties.id')->where('applications.id', '=', $request->id)->select(
+                DB::raw('concat(organizations.name, "-",counterparties.name) as organization'),
+                'subjects.name as subject',
+                'applications.description as anotation',
+                'applications.razbivka as razbivka',
+                'applications.organization_id'
+            )->get();
+        $subaplication = Subapplication::where('application_id', $request->id)->select('service_id', 'service_num as num', 'rate', 'description')->get();
+        $data['application'] = $application;
+        $data['subaplication'] = $subaplication;
         return $data;
+    }
+    public function exelRazbivka(Request $request)
+    {
+        $data = DB::table('operations')->where('operations.application_id', '=', $request->application_id)->leftJoin('boxes','operations.box_id','=','boxes.id')
+        ->leftJoin('articles','operations.article_id','=','articles.id')
+        ->selectRaw('(CASE WHEN boxes.name is null THEN 0 ELSE boxes.name  END)  as box,articles.code as barcode, articles.name as article, (CASE WHEN articles.size is null THEN 0 ELSE articles.size END) as size, sum(operations.num) as quantity')
+            ->groupBy('boxes.name','articles.code','articles.name','articles.size')->get();
+        return $data;
+    }
+    //SHK_BOX_PDF_GENERATEs
+
+    public function shkBox(Request $request)
+    {
+        $application = $request->application_id;
+        $operations = '';
+        $data = '';
+        $title = DB::table('applications')->where('applications.id', '=', $application)->leftJoin('organizations', 'applications.organization_id', '=', 'organizations.id')
+            ->select('organizations.name as name', 'organizations.counterparty_id as owner', 'applications.id as id')->first();
+        if (isset($request->box_id)) {
+            $operations = DB::table('operations')->where('operations.application_id', '=', $application)->where('operations.box_id', '=', $request->box_id)->selectRaw('sum(operations.num) as num , articles.name as name,articles.size as size,operations.box_id as box_id')
+                ->leftJoin('articles', 'operations.article_id', '=', 'articles.id')
+                ->groupBy('operations.article_id', 'articles.name', 'articles.size', 'operations.box_id')->get();
+            $data = DB::table('boxes')->where('boxes.id', '=', $request->box_id)->leftJoin('users', 'boxes.user_id', '=', 'users.id')->select('boxes.name as box_name', 'boxes.created_at as created_at', 'users.name as user_name', 'boxes.id as id')->get();
+        } else {
+
+
+            $operations = DB::table('operations')->where('operations.application_id', '=', $application)->selectRaw('sum(operations.num) as num , articles.name as name,articles.size as size,operations.box_id as box_id')
+                ->leftJoin('articles', 'operations.article_id', '=', 'articles.id')
+                ->groupBy('operations.article_id', 'articles.name', 'articles.size', 'operations.box_id')->get();
+            $data = DB::table('boxes')->where('boxes.application_id', '=', $application)->leftJoin('users', 'boxes.user_id', '=', 'users.id')->select('boxes.name as box_name', 'boxes.created_at as created_at', 'users.name as user_name', 'boxes.id as id')->get();
+        }
+        $customPaper = array(0, 0, 212.59, 340.15);
+        $pdf = PDF::setOption(['defaultFont' => 'dejavu sans'])->loadView('shk_box', compact('title', 'data', 'operations'))->setPaper($customPaper, 'landscape');
+        return $pdf->download($application . '_shk_box.pdf');
     }
 }

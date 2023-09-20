@@ -59,6 +59,8 @@ Route::post('/managment/aplications',[ManegmantController::class,'aplications'])
 Route::post('/managment/update_app_status',[ManegmantController::class,'update_app_status'])->middleware('auth:sanctum');
 Route::post('/managment/app_sub',[ManegmantController::class,'appSub'])->middleware('auth:sanctum');
 Route::post('/managment/update_application',[ManegmantController::class,'update_application'])->middleware('auth:sanctum');
+Route::post('/managment/exelrazbivka',[ManegmantController::class,'exelRazbivka'])->middleware('auth:sanctum');
+
 
 Route::post('/task/createarticle',[TaskController::class,'createArticle'])->middleware('auth:sanctum');
 Route::post('/task/updateArticle',[TaskController::class,'updateArticle'])->middleware('auth:sanctum');
