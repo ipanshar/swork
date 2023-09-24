@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CabinetController;
+use App\Http\Controllers\Api\LogisticController;
 use App\Http\Controllers\Api\ManegmantController;
 use App\Http\Controllers\Api\TaskController;
 use Illuminate\Http\Request;
@@ -75,3 +76,9 @@ Route::post('/task/delete_option',[TaskController::class,'delete_option'])->midd
 Route::post('/task/operations_box',[TaskController::class,'operations_box'])->middleware('auth:sanctum');
 Route::post('/task/detal_box',[TaskController::class,'detal_box'])->middleware('auth:sanctum');
 Route::post('/task/delete_box',[TaskController::class,'delete_box'])->middleware('auth:sanctum');
+
+
+
+
+Route::post('/logistic/boxes_status',[LogisticController::class,'boxesStatus'])->middleware('auth:sanctum');
+Route::post('/logistic/up_box_status',[LogisticController::class,'upBoxStatus'])->middleware('auth:sanctum');

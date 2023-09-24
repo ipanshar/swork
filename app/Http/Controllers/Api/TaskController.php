@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Application;
 use App\Models\Article;
 use App\Models\Box;
 use App\Models\Operation;
@@ -157,10 +158,12 @@ class TaskController extends Controller
                 ], 401);
             }
             $rate = Service::where('id', 8)->first();
+            $app = Application::where('id',$request->application_id);
             $box = Box::create([
                 'application_id' => $request->application_id,
                 'rate' => $rate->rate,
                 'user_id' => $user->id,
+                'organization_id'=>$app->organization_id,
             ]);
             $box->name = 'BOX_' . (10000 + $box->id);
             $box->save();
