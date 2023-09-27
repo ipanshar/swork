@@ -34,6 +34,7 @@ Route::post('/auth/recovery-token', [AuthController::class,'recoveryToken']);
 Route::post('/auth/level', [AuthController::class,'level'])->middleware('auth:sanctum');
 Route::post('/cabinet/mysalary', [CabinetController::class,'mySalary'])->middleware('auth:sanctum');
 Route::post('/cabinet/myprofile', [CabinetController::class,'myProfile'])->middleware('auth:sanctum');
+Route::post('/cabinet/mywork',[CabinetController::class,'myWork'])->middleware('auth:sanctum');
 
 Route::post('/admin/users',[AdminController::class,'users'])->middleware('auth:sanctum');
 Route::post('/admin/uplevel',[AdminController::class,'uplevel'])->middleware('auth:sanctum');
@@ -82,3 +83,5 @@ Route::post('/task/delete_box',[TaskController::class,'delete_box'])->middleware
 
 Route::post('/logistic/boxes_status',[LogisticController::class,'boxesStatus'])->middleware('auth:sanctum');
 Route::post('/logistic/up_box_status',[LogisticController::class,'upBoxStatus'])->middleware('auth:sanctum');
+Route::post('/logistic/razbivka_boxes',[LogisticController::class,'razbivkaBoxes'])->middleware('auth:sanctum');
+

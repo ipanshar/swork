@@ -18,6 +18,8 @@ return new class extends Migration
             $table->double('rate')->default(0);
             $table->integer('salary_id')->default(0);
             $table->integer('user_id');
+            $table->integer('status_id')->default(1);
+            $table->integer('organization_id');
             $table->timestamps();
         });
     }

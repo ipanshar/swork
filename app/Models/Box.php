@@ -14,5 +14,7 @@ class Box extends Model
         'rate',
         'salary_id',
         'user_id',
+        'organization_id',
+        'status_id',
     ];
 }

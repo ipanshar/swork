@@ -29,4 +29,10 @@ class LogisticController extends Controller
         return $request->id;
     }
     
+    public function razbivkaBoxes(Request $request){
+       
+        $data=DB::table('boxes')->leftJoin('operations','boxes.id','=','operations.box_id')->leftJoin('articles','operations.article_id','=','articles.id')->leftJoin('statuses','boxes.status_id','=','statuses.id')->where('boxes.organization_id', $request->id)
+       ->selectRaw('max(operations.id) as id,boxes.application_id as application_id, boxes.name as box, articles.code as code, articles.name as article, articles.size as size, sum(operations.num) as num, statuses.name as status')->groupBy('boxes.application_id','boxes.name', 'articles.code', 'articles.name','articles.size', 'operations.num', 'statuses.name')->get();
+       return $data;
+    }
 }

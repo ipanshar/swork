@@ -158,7 +158,7 @@ class TaskController extends Controller
                 ], 401);
             }
             $rate = Service::where('id', 8)->first();
-            $app = Application::where('id',$request->application_id);
+            $app = Application::where('id',$request->application_id)->first();
             $box = Box::create([
                 'application_id' => $request->application_id,
                 'rate' => $rate->rate,
@@ -214,6 +214,7 @@ class TaskController extends Controller
                     'errors' => $valdateBox->errors()
                 ], 401);
             }
+
             $operation = Operation::create([
                 'box_id' => $request->box_id,
                 'application_id' => $request->application_id,
@@ -234,12 +235,19 @@ class TaskController extends Controller
     }
     ///////////////////////////////
     public function delete_option(Request $request)
-    {
+    {   $oper=Operation::where('id', "=", $request->id)->first();
+        $appl=Application::where('id',$oper->application_id)->first();
+    if($appl->status_id==1){
         $delete = Operation::where('id', "=", $request->id)->delete();
         return  response()->json([
             'status' => true,
             'message' =>  'Запись удалена'
         ], 200);
+    } 
+    return  response()->json([
+        'status' => false,
+        'message' =>  'Не удалось удалить'
+    ], 401);
     }
     public function operations_box(Request $request)
     {
@@ -282,6 +290,8 @@ class TaskController extends Controller
             $user = User::where('email', $request->email)->first();
 
             $box = Box::where('id', $request->box_id)->first();
+            $appl=Application::where('id',$box->application_id)->first();
+            if($appl->status_id==1){
             if ($box->user_id == $user->id) {
                 Box::where('id', $request->box_id)->delete();
                 Operation::where('box_id', $request->box_id)->delete();
@@ -290,6 +300,7 @@ class TaskController extends Controller
                     'message' =>  'Запись удалена'
                 ], 200);
             }
+        }
             return  response()->json([
                 'status' => false,
                 'message' =>  'Не удалось удалить, у вас отстутвуют права'
@@ -301,4 +312,5 @@ class TaskController extends Controller
             ], 500);
         }
     }
+
 }
