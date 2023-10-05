@@ -15,9 +15,8 @@ class Subapplication extends Model
         'article_num',
         'service_num',
         'rate',
-        'price',
+        'status_id',
         'description',
-        'invoice_id',
         'user_id',
 ];
 }

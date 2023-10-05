@@ -11,17 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('subapplications', function (Blueprint $table) {
+        Schema::create('entries', function (Blueprint $table) {
             $table->id();
-            $table->integer('application_id');
             $table->integer('organization_id');
+            $table->integer('subject_id')->nullable()->default(null);
+            $table->integer('subject_count')->nullable()->default(null);
             $table->integer('service_id');
-            $table->integer('article_num')->default(0);
-            $table->integer('service_num')->default(1);
-            $table->integer('service_total')->default(0);
-            $table->float('rate')->default(0);
-            $table->integer('status_id')->default(1);
-            $table->string('description')->nullable();
+            $table->float('service_price');
+            $table->integer('service_count');
+            $table->float('total_sum');
+            $table->string('coment')->nullable()->default(null);
+            $table->date('public_date');
+            $table->integer('invoice_id')->default(0);
             $table->integer('user_id');
             $table->timestamps();
         });
@@ -32,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('subapplications');
+        Schema::dropIfExists('entries');
     }
 };

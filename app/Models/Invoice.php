@@ -8,4 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 class Invoice extends Model
 {
     use HasFactory;
+    protected $fillable = [
+        'counterparty_id',
+        'accrual',
+        'payment',
+        'balance',
+        'valuta_id',
+        'description',
+        'user_id',
+    ];
 }

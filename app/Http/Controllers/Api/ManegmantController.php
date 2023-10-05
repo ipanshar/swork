@@ -371,7 +371,7 @@ class ManegmantController extends Controller
             foreach ($datas as $data) {
                 if ($data['service_id'] > 0) {
                     $subaplication = Subapplication::create([
-                        'application_id' => $request->id,
+                        'application_id' => $application->id,
                         'organization_id' => $request->organization_id,
                         'service_id' => $data['service_id'],
                         'service_num' => $data['num'],
@@ -380,6 +380,18 @@ class ManegmantController extends Controller
                         'user_id' => $user->id,
                     ]);
                 }
+            }
+            if($request->razbivka==1){
+                $rate = Service::where('id','=',8)->first();
+                $subaplication = Subapplication::create([
+                    'application_id' => $application->id,
+                    'organization_id' => $request->organization_id,
+                    'service_id' => 8,
+                    'service_num' =>1,
+                    'rate' =>$rate->rate,
+                    'description' =>'',
+                    'user_id' => $user->id,
+                ]);
             }
             return response()->json([
                 'status' => true,
@@ -439,6 +451,19 @@ class ManegmantController extends Controller
                     ]);
                 }
             }
+            if($request->razbivka==1){
+                $rate = Service::where('id','=',8)->first();
+                $subaplication = Subapplication::create([
+                    'application_id' => $application->id,
+                    'organization_id' => $request->organization_id,
+                    'service_id' => 8,
+                    'service_num' =>1,
+                    'rate' =>$rate->rate,
+                    'description' =>'',
+                    'user_id' => $user->id,
+                ]);
+            }
+            
             return response()->json([
                 'status' => true,
                 'message' =>  'Задача обновлена'
@@ -520,6 +545,13 @@ class ManegmantController extends Controller
             $application->status_id = $request->status_id;
             $application->update_user_id = $user->id;
             $application->save();
+             if($request->status_id==2){
+                 $count['articles'] = DB::table('operations')->where('application_id','=',$request->id)->sum('num');
+                 $count['boxes'] = DB::table('boxes')->where('application_id','=',$request->id)->count('id');
+                 $subaplication['article_num'] =Subapplication::where('application_id','=',$request->id)->update(['article_num'=>$count['articles']]);
+                 $subaplication['service_total'] =Subapplication::where('application_id','=',$request->id)->update(['service_total'=>DB::raw('article_num*service_num')]);
+                 $subaplication['boxes'] =Subapplication::where('application_id','=',$request->id)->where('service_id','=',8)->update(['service_total'=>$count['boxes']]);
+             }
             return response()->json([
                 'status' => true,
                 'message' =>  'Задача обновлена'
@@ -579,5 +611,11 @@ class ManegmantController extends Controller
         $customPaper = array(0, 0, 212.59, 340.15);
         $pdf = PDF::setOption(['defaultFont' => 'dejavu sans'])->loadView('shk_box', compact('title', 'data', 'operations'))->setPaper($customPaper, 'landscape');
         return $pdf->download($application . '_shk_box.pdf');
+    }
+
+    public function service_list(Request $request)
+    {
+        $service_list = Service::select('id as value', 'name as label','rate', 'price')->get();
+        return $service_list;
     }
 }

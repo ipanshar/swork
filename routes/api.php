@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CabinetController;
@@ -56,6 +57,7 @@ Route::post('/managment/updatesubject',[ManegmantController::class,'updateSubjec
 Route::post('/managment/subjects',[ManegmantController::class,'subjects'])->middleware('auth:sanctum');
 Route::post('/managment/subjects_org',[ManegmantController::class,'subjects_org'])->middleware('auth:sanctum');
 Route::post('/managment/service_app',[ManegmantController::class,'service_app'])->middleware('auth:sanctum');
+Route::post('/managment/service_list',[ManegmantController::class,'service_list'])->middleware('auth:sanctum');
 Route::post('/managment/create_application',[ManegmantController::class,'create_application'])->middleware('auth:sanctum');
 Route::post('/managment/aplications',[ManegmantController::class,'aplications'])->middleware('auth:sanctum');
 Route::post('/managment/update_app_status',[ManegmantController::class,'update_app_status'])->middleware('auth:sanctum');
@@ -84,4 +86,16 @@ Route::post('/task/delete_box',[TaskController::class,'delete_box'])->middleware
 Route::post('/logistic/boxes_status',[LogisticController::class,'boxesStatus'])->middleware('auth:sanctum');
 Route::post('/logistic/up_box_status',[LogisticController::class,'upBoxStatus'])->middleware('auth:sanctum');
 Route::post('/logistic/razbivka_boxes',[LogisticController::class,'razbivkaBoxes'])->middleware('auth:sanctum');
+
+
+
+Route::post('/accounting/add_entries',[AccountingController::class,'add_entries'])->middleware('auth:sanctum');
+Route::post('/accounting/entries_list',[AccountingController::class,'entries_list'])->middleware('auth:sanctum');
+Route::post('/accounting/entries_update',[AccountingController::class,'entries_update'])->middleware('auth:sanctum');
+Route::post('/accounting/entries_delete',[AccountingController::class,'entries_delete'])->middleware('auth:sanctum');
+Route::post('/accounting/app_list_end',[AccountingController::class,'app_list_end'])->middleware('auth:sanctum');
+Route::post('/accounting/app_reports',[AccountingController::class,'app_reports'])->middleware('auth:sanctum');
+Route::post('/accounting/app_status_end',[AccountingController::class,'app_status_end'])->middleware('auth:sanctum');
+Route::post('/accounting/counter_enties',[AccountingController::class,'counter_enties'])->middleware('auth:sanctum');
+Route::post('/accounting/create_bill',[AccountingController::class,'create_bill'])->middleware('auth:sanctum');
 
