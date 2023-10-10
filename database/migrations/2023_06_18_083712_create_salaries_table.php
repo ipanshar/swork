@@ -13,6 +13,14 @@ return new class extends Migration
     {
         Schema::create('salaries', function (Blueprint $table) {
             $table->id();
+            $table->integer('personal_id');
+            $table->float('accrued')->default(0);
+            $table->float('held')->default(0);
+            $table->float('paid')->default(0);
+            $table->float('balance')->default(0);
+            $table->string('description')->nullable();
+            $table->integer('user_id');
+            $table->integer('partner')->default(0);
             $table->timestamps();
         });
     }

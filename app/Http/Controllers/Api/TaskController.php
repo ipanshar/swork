@@ -182,9 +182,12 @@ class TaskController extends Controller
 
     public function app_articles(Request $request)
     {
-        $articles = DB::table('applications')->where('applications.id', '=', $request->id)
-            ->leftJoin('articles', 'applications.organization_id', '=', 'articles.organization_id', 'applications.subject_id', '=', 'articles.subject_id')
-            ->select('articles.id as value', DB::raw('concat( articles.name,"-", COALESCE(articles.size,""),"- ", COALESCE(articles.code,"") )as label'))->get();
+        // $articles = DB::table('applications')->where('applications.id', '=', $request->id)
+        //     ->leftJoin('articles', 'applications.organization_id', '=', 'articles.organization_id', 'applications.subject_id', '=', 'articles.subject_id')
+        //     ->select('articles.id as value', DB::raw('concat( articles.name,"-", COALESCE(articles.size,""),"- ", COALESCE(articles.code,"") )as label'))->get();
+            $applications= Application::where('id',$request->id)->first();
+           $articles= Article::where('organization_id',$applications->organization_id)->where('subject_id',$applications->subject_id)
+           ->select('id as value',DB::raw('CONCAT(name, CASE WHEN size <> "" AND code <> "" THEN  CONCAT("(",size,") - ",code) WHEN size <> "" THEN  CONCAT("(",size,")") WHEN code <> "" THEN CONCAT(" - ",code) ELSE "" END) as label'))->get();
         return $articles;
     }
     ///////////////////////////////////////////////////////////////////

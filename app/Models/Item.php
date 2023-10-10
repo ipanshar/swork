@@ -5,17 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Salary extends Model
+class Item extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'personal_id',
-        'accrued',
-        'held',
-        'paid',
-        'balance',
-        'description',
-        'user_id',
-        'partner'
+        'name',
+        'key',
+        'group',
     ];
 }

@@ -36,7 +36,7 @@ public function myWork(Request $request){
    foreach ($operations as $oper){
       $app=DB::table('applications')->leftJoin('organizations','applications.organization_id','=','organizations.id')->where('applications.id','=',$oper->application_id)->select('organizations.name  as name')->first();
 
-      $subapplications= DB::table('subapplications')->where('subapplications.application_id','=', $oper->application_id)->leftJoin('services','subapplications.service_id','=','services.id')
+      $subapplications= DB::table('subapplications')->where('subapplications.application_id','=', $oper->application_id)->leftJoin('services','subapplications.service_id','=','services.id')->where('services.category_id','=',2)
       ->select('services.name as service','subapplications.rate as rate','subapplications.service_num as service_num')->get();
       foreach($subapplications as $sub){
          $d=array('organization'=>$app->name,'application_id'=>$oper->application_id,'service'=>$sub->service,'rate'=>$sub->rate,'num_me'=>$oper->num_me*$sub->service_num,'sum'=>($oper->num_me*$sub->service_num)*$sub->rate,'update_at'=>$oper->update_at);

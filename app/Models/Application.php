@@ -14,7 +14,9 @@ class Application extends Model
         'razbivka',
         'subject_id',
         'description',
+        'salary_id',
         'create_user_id',
         'update_user_id'
+        
     ];
 }

@@ -17,23 +17,21 @@ class AdminController extends Controller
 {
     public function users()
     {
-        $users = DB::table('users')->select('level as value', 'email as label')->get();
+        $users = DB::table('users')->select('id','name', 'email', 'level','oklad','bonus','created_at')->get();
         return $users;
     }
 
     public function uplevel(Request $request)
     {
-        $level = DB::table('users')->where('email', $request->email)->update(['level' => $request->newlevel]);
-        if (is_null($level)) {
-            return response()->json([
-                'status' => false,
-                'massage' => 'Не удалось обновить'
-            ], 200);
+        $user=User::where('email',$request->email)->first();
+        if($user->level>3){
+             $update = User::where('id',$request->id)->update([
+            'level'=>$request->level,
+            'oklad'=>$request->oklad,
+            'bonus'=>$request->bonus,
+        ]);
+        return $this->users();
         }
-        return response()->json([
-            'status' => true,
-            'message' => 'Доступ успешно обновлено'
-        ], 200);
     }
 
     public function createService(Request $request)
@@ -143,5 +141,6 @@ class AdminController extends Controller
         $valuta = Valuta::select('id as value', 'code as label')->get();
         return $valuta;
     }
+    
     
 }

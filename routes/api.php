@@ -98,4 +98,21 @@ Route::post('/accounting/app_reports',[AccountingController::class,'app_reports'
 Route::post('/accounting/app_status_end',[AccountingController::class,'app_status_end'])->middleware('auth:sanctum');
 Route::post('/accounting/counter_enties',[AccountingController::class,'counter_enties'])->middleware('auth:sanctum');
 Route::post('/accounting/create_bill',[AccountingController::class,'create_bill'])->middleware('auth:sanctum');
+Route::post('/accounting/invoice_view',[AccountingController::class,'invoice_view'])->middleware('auth:sanctum');
+Route::post('/accounting/coun_journal',[AccountingController::class,'coun_journal'])->middleware('auth:sanctum');
+Route::post('/accounting/delete_invoice',[AccountingController::class,'delete_invoice'])->middleware('auth:sanctum');
+Route::post('/accounting/counterparties',[AccountingController::class,'counterparties'])->middleware('auth:sanctum');
+Route::post('/accounting/items',[AccountingController::class,'items'])->middleware('auth:sanctum');
+Route::post('/accounting/add_item',[AccountingController::class,'add_item'])->middleware('auth:sanctum');
+Route::post('/accounting/group_items',[AccountingController::class,'group_items'])->middleware('auth:sanctum');
+Route::post('/accounting/accept_payment',[AccountingController::class,'accept_payment'])->middleware('auth:sanctum');
+Route::post('/accounting/personal',[AccountingController::class,'personal'])->middleware('auth:sanctum');
+Route::post('/accounting/pay_expense',[AccountingController::class,'pay_expense'])->middleware('auth:sanctum');
+Route::post('/accounting/add_salary',[AccountingController::class,'add_salary'])->middleware('auth:sanctum');
+Route::post('/accounting/cashbox_top',[AccountingController::class,'cashbox_top'])->middleware('auth:sanctum');
+Route::post('/accounting/salary_top',[AccountingController::class,'salary_top'])->middleware('auth:sanctum');
+Route::post('/accounting/salary_calculation',[AccountingController::class,'salary_calculation'])->middleware('auth:sanctum');
+Route::post('/accounting/personal_list',[AccountingController::class,'personal_list'])->middleware('auth:sanctum');
+Route::post('/accounting/personal_list_id',[AccountingController::class,'personal_list_id'])->middleware('auth:sanctum');
+
 
