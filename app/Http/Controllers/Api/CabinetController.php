@@ -28,7 +28,7 @@ class CabinetController extends Controller
 public function myWork(Request $request){
    $user = User::where('email',$request->email)->first();
    
-   $operations=Operation::orderByDesc('update_at')->where('user_id',$user->id)->where('created_at','>',$request->GetCreated)->where('created_at','<',$request->EndCreated.' 23:59:59')->groupBy('application_id')->select('application_id',DB::raw('sum(num) as num_me,date(max(updated_at)) update_at'))->get();
+   $operations=Operation::orderByDesc('update_at')->where('user_id',$user->id)->where('created_at','>',$request->GetCreated)->where('created_at','<',$request->EndCreated.' 23:59:59')->groupBy('application_id')->select('application_id',DB::raw('sum(num) as num_me,date(max(updated_at)) update_at, max(salary_id) as salary_id'))->get();
  
    // leftJoin('subapplications','operations.application_id','=','subapplications.application_id')
    // ->leftJoin('services','subapplications.service_id')->seletRow()->get();
@@ -39,12 +39,12 @@ public function myWork(Request $request){
       $subapplications= DB::table('subapplications')->where('subapplications.application_id','=', $oper->application_id)->leftJoin('services','subapplications.service_id','=','services.id')->where('services.category_id','=',2)
       ->select('services.name as service','subapplications.rate as rate','subapplications.service_num as service_num')->get();
       foreach($subapplications as $sub){
-         $d=array('organization'=>$app->name,'application_id'=>$oper->application_id,'service'=>$sub->service,'rate'=>$sub->rate,'num_me'=>$oper->num_me*$sub->service_num,'sum'=>($oper->num_me*$sub->service_num)*$sub->rate,'update_at'=>$oper->update_at);
+         $d=array('organization'=>$app->name,'application_id'=>$oper->application_id,'service'=>$sub->service,'rate'=>$sub->rate,'num_me'=>$oper->num_me*$sub->service_num,'sum'=>($oper->num_me*$sub->service_num)*$sub->rate, 'update_at'=>$oper->update_at, 'salary_id'=>$oper->salary_id);
       array_push($data,$d);
       }
       $box=Box::where('application_id',$oper->application_id)->where('user_id',$user->id)->select(DB::raw('count(id) as num_me, avg(rate) as rate'))->first();
       if ($box->num_me>0){
-         $d=array('organization'=>$app->name,'application_id'=>$oper->application_id,'service'=>'Формирование короба','rate'=>$box->rate,'num_me'=>$box->num_me,'sum'=>($box->num_me*1)*$box->rate,'update_at'=>$oper->update_at);
+         $d=array('organization'=>$app->name,'application_id'=>$oper->application_id,'service'=>'Формирование короба','rate'=>$box->rate,'num_me'=>$box->num_me,'sum'=>($box->num_me*1)*$box->rate,'update_at'=>$oper->update_at, 'salary_id'=>$oper->salary_id);
          array_push($data,$d);
       }
 

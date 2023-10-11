@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Box;
 use App\Models\Counterparty;
+use App\Models\Dogovor;
+use App\Models\Entries;
+use App\Models\Merchandise;
 use App\Models\Operation;
 use App\Models\Organization;
 use App\Models\Service;
@@ -332,7 +335,27 @@ class ManegmantController extends Controller
         $service_app = Service::where('category_id', '=', $request->category_id)->select('id as value', 'name as label', 'rate')->get();
         return $service_app;
     }
-
+    public function service_price(Request $request)
+    {   $data=[];
+        $service_app = Service::where('category_id', '=', $request->category_id)->get();
+        foreach($service_app as $ser){
+          $price = $this->price($ser->id,$request->organization_id);
+          $val =['value'=>$ser->id,'label'=>$ser->name,'rate'=>$ser->rate,'price'=>$price];
+          array_push($data,$val);
+        }
+        return $data;
+    }
+    public function price($service_id,$organization_id){
+        $counter = Organization::where('id',$organization_id)->first();
+        $dogovor = Dogovor::where('counterparty_id',$counter->counterparty_id)->where('service_id',$service_id)->first();
+        if($dogovor !=null){
+           return $dogovor->price;
+        }else{
+            $price = Service::where('id',$service_id)->first();
+             return $price->price;
+        }
+       
+    }
     public function create_application(Request $request)
     {
         $user = User::where('email', $request->email)->first();
@@ -481,8 +504,8 @@ class ManegmantController extends Controller
 
         $application = DB::table('applications')->leftJoin('subjects', 'applications.subject_id', '=', 'subjects.id')
             ->leftJoin('organizations', 'applications.organization_id', '=', 'organizations.id')->leftJoin('counterparties', 'organizations.counterparty_id', '=', 'counterparties.id')
-            ->leftJoin('users', 'applications.create_user_id', 'users.id')->leftJoin('statuses', 'applications.status_id', '=', 'statuses.id')
-            ->select('applications.id as id', DB::RAW('CONCAT(organizations.name, "-" ,counterparties.name)as organization'), 'subjects.name as subject', 'applications.razbivka as razbivka', 'users.name as name', 'applications.created_at as created_at', 'applications.description as description', 'applications.status_id as status_id', 'statuses.name as status', 'applications.organization_id as organization_id')
+            ->leftJoin('users', 'applications.create_user_id', 'users.id')->leftJoin('users as managers', 'applications.update_user_id', 'managers.id')->leftJoin('statuses', 'applications.status_id', '=', 'statuses.id')
+            ->select('applications.id as id', DB::RAW('CONCAT(organizations.name, "-" ,counterparties.name)as organization'), 'subjects.name as subject', 'applications.razbivka as razbivka', 'users.name as name', 'applications.created_at as created_at', 'applications.description as description', 'applications.status_id as status_id', 'statuses.name as status', 'applications.organization_id as organization_id','managers.name as manager','applications.updated_at as updated_at')
             ->whereIn('applications.status_id', $request->status_id)->orderBy('id', 'desc')->paginate(20);
         //
         $cur_page = $application->currentPage();
@@ -502,12 +525,14 @@ class ManegmantController extends Controller
                 'services' => $subApp[0]->gr,
                 'name' => $d->name,
                 'created_at' => $d->created_at,
+                'updated_at' => $d->updated_at,
                 'razbivka' => $d->razbivka,
                 'description' => $d->description,
                 'status_id' => $d->status_id,
                 'status' => $d->status,
                 'box' => $box,
                 'operation' => $operation,
+                'manager' => $d->manager,
             ];
             array_push($dada, $val);
         }
@@ -615,7 +640,35 @@ class ManegmantController extends Controller
 
     public function service_list(Request $request)
     {
-        $service_list = Service::select('id as value', 'name as label','rate', 'price')->get();
+        $service_list = Service::where('category_id','<>',4)->select('id as value', 'name as label','rate', 'price')->get();
         return $service_list;
+    }
+    public function merchandis_create(Request $request){
+        $user = User::where('email',$request->email)->first();
+        $merchandise = Merchandise::create([
+                'organization_id'=>$request->organization_id,
+                'service_id'=>$request->service_id,
+                'service_count'=>$request->service_count,
+                'price'=>$request->price,
+                'rate'=>$request->rate,
+                'accrued'=>$request->accrued,
+                'user_id'=>$user->id,
+        ]);
+        $entries = Entries::create([
+            'organization_id' => $request->organization_id,
+            'service_id' => $request->service_id,
+            'service_price' => $request->price,
+            'service_count' => $request->service_count,
+            'total_sum' => $request->price*$request->service_count,
+            'public_date' => date('Y-m-d'),
+            'user_id' => $user->id,
+        ]);
+       return $this-> merchandis_row();
+    }
+    public function merchandis_row(){
+        $merchandis = DB::table('merchandises')->leftJoin('users','merchandises.user_id','=','users.id')->leftJoin('organizations','merchandises.organization_id','=','organizations.id')->leftJoin('services','merchandises.service_id','=','services.id')
+        ->take(100)->select('merchandises.created_at as created_at','merchandises.id as id','organizations.name as organization','services.name as service','merchandises.service_count as service_count',
+        'merchandises.accrued as accrued', 'merchandises.salary_id as salary_id','users.name as user')->orderBy('merchandises.id','DESC')->get();
+        return $merchandis;
     }
 }

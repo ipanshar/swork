@@ -7,12 +7,17 @@ use App\Models\Application;
 use App\Models\Box;
 use App\Models\Cashbox;
 use App\Models\Counterparty;
+use App\Models\Dogovor;
 use App\Models\Entries;
 use App\Models\Invoice;
 use App\Models\Item;
+use App\Models\Merchandise;
 use App\Models\Operation;
+use App\Models\Organization;
 use App\Models\Salary;
+use App\Models\Service;
 use App\Models\Subapplication;
+use App\Models\Transport;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +54,10 @@ class AccountingController extends Controller
                     'errors' => $validate->errors()
                 ], 401);
             }
+            $total_sum = $request->service_count * $request->service_price;
+            if ($request->service_id === 9) {
+                $total_sum = 0 - $total_sum;
+            }
             $entries = Entries::create([
                 'organization_id' => $request->organization_id,
                 'subject_id' => $request->subject_id,
@@ -56,11 +65,15 @@ class AccountingController extends Controller
                 'service_id' => $request->service_id,
                 'service_price' => $request->service_price,
                 'service_count' => $request->service_count,
-                'total_sum' => $request->service_count * $request->service_price,
+                'total_sum' => $total_sum,
                 'coment' => $request->coment,
                 'public_date' => $request->public_date,
                 'user_id' => $user->id,
             ]);
+            if ($request->service_id === 6) {
+                $org = Organization::where('id', $request->organization_id)->first();
+                $cashbox = $this->insert_cashbox($org->counterparty_id, 0, 0, 0, 8, 0, $total_sum, $request->coment, $user->id);
+            }
             return response()->json([
                 'status' => true,
                 'message' =>  'Проводка добавлена'
@@ -154,6 +167,17 @@ class AccountingController extends Controller
             ->leftJoin('counterparties', 'organizations.counterparty_id', '=', 'counterparties.id')->select('applications.id as value', DB::raw("CONCAT(applications.id,'-',organizations.name,'(',counterparties.name,')') as label"))->get();
         return $application;
     }
+    public function price($service_id,$organization_id){
+        $counter = Organization::where('id',$organization_id)->first();
+        $dogovor = Dogovor::where('counterparty_id',$counter->counterparty_id)->where('service_id',$service_id)->first();
+        if($dogovor !=null){
+           return $dogovor->price;
+        }else{
+            $price = Service::where('id',$service_id)->first();
+             return $price->price;
+        }
+       
+    }
     public function app_reports(Request $request)
     {
 
@@ -172,7 +196,26 @@ class AccountingController extends Controller
                 'applications.organization_id as organization_id',
                 DB::raw("CONCAT(applications.id,'-',organizations.name,'(',counterparties.name,')') as organizations")
             )->get();
-        return $reports;
+            $data=[];
+            foreach($reports as $re){
+                $price = $this->price($re->service_id,$re->organization_id); 
+                $val= [
+                    'id'=>$re->id,
+                    'subject'=>$re->subject,
+                    'subject_id'=>$re->subject_id,
+                    'subject_count'=>$re->subject_count,
+                    'service_id'=>$re->service_id,
+                    'service'=>$re->service,
+                    'service_price'=>$price,
+                    'service_count'=>$re->service_count,
+                    'coment'=>$re->coment,
+                    'public_date'=>$re->public_date,
+                    'organization_id'=>$re->organization_id, 
+                    'organizations'=>$re->organizations
+                ];
+                array_push($data,$val);
+            }
+        return $data;
     }
     public function app_status_end(Request $request)
     {
@@ -372,9 +415,9 @@ class AccountingController extends Controller
     public function salary_insert($personal_id, $accrued, $held, $paid, $description, $user_id, $partner)
     {
         $b = Salary::where('personal_id', $personal_id)->orderBy('id', 'DESC')->select('balance')->first();
-        $balance=0;
-        if($b != null){
-            $balance=$b->balance;
+        $balance = 0;
+        if ($b != null) {
+            $balance = $b->balance;
         }
         $balance = $accrued + $balance - $held - $paid;
         $create = Salary::create([
@@ -423,70 +466,139 @@ class AccountingController extends Controller
             ->select('salaries.id as id', 'salaries.created_at as created_at', 'personal.name as personal', 'salaries.accrued', 'salaries.held as held', 'salaries.paid as paid', 'salaries.balance as balance', 'users.name as user', 'salaries.description as description',)->take(100)->get();
         return $salary;
     }
-    public function salary_calculation(Request $request){
-        $accounting =User::where('email',$request->email)->first();
-        if($accounting->level<4){
+    public function salary_calculation(Request $request)
+    {
+        $accounting = User::where('email', $request->email)->first();
+        if ($accounting->level < 4) {
             return response()->json([
                 'status' => false,
                 'message' => 'У вас не достаточно прав'
             ], 401);
-        } 
+        }
 
-       $operations = DB::table('operations')->where('operations.work_sum',0)->leftJoin('applications','operations.application_id','=','applications.id')->where('applications.status_id',4)->select('operations.id as id','operations.application_id as application_id','operations.num as num')->get(); 
-       foreach($operations as $operation){
-        $work_sum = 0;
-        $subapplications = Subapplication::where('application_id',$operation->application_id)->where('service_id','<>',8)->select(DB::raw('sum(service_num * rate) as rate_sum'))->get();
-        foreach($subapplications as $subapplication){
-            $work_sum= $work_sum+($operation->num*$subapplication->rate_sum);
+        $operations = DB::table('operations')->where('operations.work_sum', 0)->leftJoin('applications', 'operations.application_id', '=', 'applications.id')->where('applications.status_id', 4)->select('operations.id as id', 'operations.application_id as application_id', 'operations.num as num')->get();
+        foreach ($operations as $operation) {
+            $work_sum = 0;
+            $subapplications = Subapplication::where('application_id', $operation->application_id)->where('service_id', '<>', 8)->select(DB::raw('sum(service_num * rate) as rate_sum'))->get();
+            foreach ($subapplications as $subapplication) {
+                $work_sum = $work_sum + ($operation->num * $subapplication->rate_sum);
+            }
+            $operation_up = Operation::where('id', $operation->id)->update(['work_sum' => $work_sum]);
         }
-        $operation_up = Operation::where('id',$operation->id)->update(['work_sum'=>$work_sum]);
-       }
-       $users =  User::get();
-       foreach ($users as $user){
-        $work_sum = Operation::where('user_id',$user->id)->where('work_sum','>',0)->where('salary_id',0)->sum('work_sum');
-        $box_sum = DB::table('boxes')->where('boxes.user_id',$user->id)->where('boxes.salary_id',0)->leftJoin('applications','boxes.application_id','=','applications.id')->where('applications.status_id',4)->sum('boxes.rate');
-        $accrued = $box_sum+$work_sum;
-        if($accrued>0){
-         $salary_id = $this->salary_insert($user->id,$accrued,0,0,'Выработка',$accounting->id,0);
-         $work_salary = Operation::where('user_id',$user->id)->where('work_sum','>',0)->where('salary_id',0)->update(['salary_id'=>$salary_id]);
-         $box_salary = DB::table('boxes')->where('boxes.user_id',$user->id)->where('boxes.salary_id',0)->leftJoin('applications','boxes.application_id','=','applications.id')->where('applications.status_id',4)
-         ->update(['boxes.salary_id'=>$salary_id]);
-        }
-        $application = Application::where('salary_id',0)->where('status_id',4)->where('update_user_id',$user->id)->get();
-         $subappTotalSum = 0;
-        foreach($application as $app){
-            $subappTotal= Subapplication::where('application_id',$app->id)->select(DB::raw('service_total * rate as total'))->get();
-            foreach($subappTotal as $s){
-                $subappTotalSum = $subappTotalSum +$s->total;
+        $users =  User::get();
+        foreach ($users as $user) {
+            $work_sum = Operation::where('user_id', $user->id)->where('work_sum', '>', 0)->where('salary_id', 0)->sum('work_sum');
+            $box_sum = DB::table('boxes')->where('boxes.user_id', $user->id)->where('boxes.salary_id', 0)->leftJoin('applications', 'boxes.application_id', '=', 'applications.id')->where('applications.status_id', 4)->sum('boxes.rate');
+            $accrued = $box_sum + $work_sum;
+            if ($accrued > 0) {
+                $salary_id = $this->salary_insert($user->id, $accrued, 0, 0, 'Выработка', $accounting->id, 0);
+                $work_salary = Operation::where('user_id', $user->id)->where('work_sum', '>', 0)->where('salary_id', 0)->update(['salary_id' => $salary_id]);
+                $box_salary = DB::table('boxes')->where('boxes.user_id', $user->id)->where('boxes.salary_id', 0)->leftJoin('applications', 'boxes.application_id', '=', 'applications.id')->where('applications.status_id', 4)
+                    ->update(['boxes.salary_id' => $salary_id]);
+            }
+            $application = Application::where('salary_id', 0)->where('status_id', 4)->where('update_user_id', $user->id)->get();
+            $subappTotalSum = 0;
+            foreach ($application as $app) {
+                $subappTotal = Subapplication::where('application_id', $app->id)->select(DB::raw('service_total * rate as total'))->get();
+                foreach ($subappTotal as $s) {
+                    $subappTotalSum = $subappTotalSum + $s->total;
+                }
+            }
+            if ($subappTotalSum > 0) {
+                $accruedManager = ($subappTotalSum * 30) / 100;
+                $salary_id_manager = $this->salary_insert($user->id, $accruedManager, 0, 0, 'Бонус менеджера ' . $subappTotalSum . ' * 30%', $accounting->id, 0);
+                $applicationUp =  Application::where('salary_id', 0)->where('status_id', 4)->where('update_user_id', $user->id)->update(['salary_id' => $salary_id_manager]);
+            }
+            $transport = Transport::where('user_id', $user->id,)->where('salary_id', 0)->sum('accrued');
+            if ($transport > 0) {
+                $transport_salary_id = $this->salary_insert($user->id, $transport, 0, 0, 'Транспортные услуги', $accounting->id, 0);
+                $transportUp = Transport::where('user_id', $user->id,)->where('salary_id', 0)->update(['salary_id' => $transport_salary_id]);
+            }
+            $merchand = Merchandise::where('user_id', $user->id,)->where('salary_id', 0)->sum('accrued');
+            if ($merchand > 0) {
+                $merchand_salary_id = $this->salary_insert($user->id, $merchand, 0, 0, 'Бонус с продаж', $accounting->id, 0);
+                $merchandUp = Merchandise::where('user_id', $user->id,)->where('salary_id', 0)->update(['salary_id' => $merchand_salary_id]);
             }
         }
-        if($subappTotalSum>0){
-            $accruedManager=($subappTotalSum*30)/100;
-            $salary_id_manager = $this->salary_insert($user->id,$accruedManager,0,0,'Бонус менеджера '.$subappTotalSum.' * 30%',$accounting->id,0);
-            $applicationUp =  Application::where('salary_id',0)->where('status_id',4)->where('update_user_id',$user->id)->update(['salary_id'=>$salary_id_manager]);
-        }
-       }
-       
-       return response()->json([ 
-        'status' => true,
-        'message' =>  'Просчет завершен',
-    ], 200);
 
+        return response()->json([
+            'status' => true,
+            'message' =>  'Просчет завершен',
+        ], 200);
     }
 
-    public function personal_list(){
-        $data = DB::table('salaries')->leftJoin('users','salaries.personal_id','=','users.id')->groupBy('salaries.personal_id', 'users.name')->selectRaw('salaries.personal_id as id, users.name as name, sum(salaries.accrued) as accrued,sum(salaries.held) as held, sum(salaries.paid) as paid')->get();
+    public function personal_list()
+    {
+        $data = DB::table('salaries')->leftJoin('users', 'salaries.personal_id', '=', 'users.id')->groupBy('salaries.personal_id', 'users.name')->selectRaw('salaries.personal_id as id, users.name as name, sum(salaries.accrued) as accrued,sum(salaries.held) as held, sum(salaries.paid) as paid')->get();
         return $data;
     }
-    public function personal_list_id(Request $request){
-        if($request->personal_id){
-           $personal = User::where('id', $request->personal_id)->first();  
+    public function personal_list_id(Request $request)
+    {
+        if ($request->personal_id) {
+            $personal = User::where('id', $request->personal_id)->first();
         }
-        if($request->email){
-            $personal = User::where('email', $request->email)->first();  
+        if ($request->email) {
+            $personal = User::where('email', $request->email)->first();
         }
-        $data['personal']=$personal->name.' - '.$personal->email;
-        $data['rows']=DB::table('salaries')->leftJoin('users','salaries.user_id','=','users.id')->where('salaries.personal_id',$personal->id)->select('salaries.id as id','salaries.created_at as created_at','salaries.accrued as accrued','salaries.held as held','salaries.paid as paid','salaries.balance as balance','salaries.description as description','users.name as user')->orderBy('id','DESC')->get();
+        $data['personal'] = $personal->name . ' - ' . $personal->email;
+        $data['rows'] = DB::table('salaries')->leftJoin('users', 'salaries.user_id', '=', 'users.id')->where('salaries.personal_id', $personal->id)->select('salaries.id as id', 'salaries.created_at as created_at', 'salaries.accrued as accrued', 'salaries.held as held', 'salaries.paid as paid', 'salaries.balance as balance', 'salaries.description as description', 'users.name as user')->orderBy('id', 'DESC')->get();
+        return $data;
+    }
+
+    public function servise_agr()
+    {
+        $data = Service::whereIn('category_id', [1, 2, 6])->select('id as value', 'name as label', 'price as price')->get();
+        return $data;
+    }
+    public function new_agr(Request $request)
+    {
+        $user = User::where('email', $request->email)->first();
+        $agr = Dogovor::where('counterparty_id', $request->counterparty_id)->where('service_id', $request->service_id)->first();
+        if ($agr != null) {
+            $agr->price = $request->price;
+            $agr->user_id = $user->id;
+            $agr->save();
+        } else {
+            $new = Dogovor::create([
+                'counterparty_id' => $request->counterparty_id,
+                'service_id' => $request->service_id,
+                'price' => $request->price,
+                'user_id' => $user->id,
+            ]);
+        }
+        return $this->agr_row($request->counterparty_id);
+    }
+    public function agr_row($counterparty_id)
+    {
+        $data = DB::table('dogovors')->where('dogovors.counterparty_id', $counterparty_id)->leftJoin('users', 'dogovors.user_id', '=', 'users.id')->leftJoin('services', 'dogovors.service_id', '=', 'services.id')
+            ->select('dogovors.id as id', 'services.name as service', 'dogovors.updated_at as updated_at', 'dogovors.price as price', 'users.name as user')->get();
+        return $data;
+    }
+    public function agr_delete(Request $request)
+    { $user = User::where('email', $request->email)->first();
+        if($user->level>3){
+             $agr = Dogovor::where('id', $request->id)->delete();
+        }
+        return $this->agr_row($request->counterparty_id);
+    }
+    public function agr_row_request(Request $request)
+    {
+        return $this->agr_row($request->counterparty_id);
+    }
+    public function service_price(Request $request)
+    {
+        $service_list = Service::where('category_id','<>',4)->get();
+        $data=[];
+        foreach($service_list as $service){
+            $price = $this->price($service->id,$request->organization_id);
+            $val= [
+                'value'=>$service->id,
+                'label'=>$service->name,
+                'rate'=>$service->rate,
+                'price'=>$price,
+            ];
+            array_push($data,$val);
+        }
         return $data;
     }
 }

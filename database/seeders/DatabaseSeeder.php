@@ -28,6 +28,15 @@ class DatabaseSeeder extends Seeder
         // Category::create([
         //     'name'=>'Другое'
         // ]);
+        // Category::create([
+        //     'name'=>'Транспортировка'
+        // ]);
+        // Category::create([
+        //     'name'=>'Скидка'
+        // ]);
+        // Category::create([
+        //     'name'=>'Расходники'
+        // ]);
         //-----Symbol---
         // Valuta::create([
         //     'code'=>'RUB',
