@@ -11,7 +11,9 @@ use App\Models\Entries;
 use App\Models\Merchandise;
 use App\Models\Operation;
 use App\Models\Organization;
+use App\Models\Salary;
 use App\Models\Service;
+use App\Models\Smena;
 use App\Models\Subapplication;
 use App\Models\Subject;
 use App\Models\User;
@@ -670,5 +672,47 @@ class ManegmantController extends Controller
         ->take(100)->select('merchandises.created_at as created_at','merchandises.id as id','organizations.name as organization','services.name as service','merchandises.service_count as service_count',
         'merchandises.accrued as accrued', 'merchandises.salary_id as salary_id','users.name as user')->orderBy('merchandises.id','DESC')->get();
         return $merchandis;
+    }
+    public function smena(){
+        $user = User::where('oklad','>',0)->where('level','>',0)->orderBy('name')->select('id','name','email','grafik','oklad',DB::raw('100 as stavka'))->get();
+      return $user;
+    }
+    public function smena_insert(Request $request){
+        $user = User::where('email', $request->email)->first();
+       
+        $personals = $request->personals;
+     
+        foreach($personals as $personal){
+            $id=$personal[0];
+            $oklad = $personal[1];
+            $stavka = $personal[2];
+        $accrued =($oklad * $stavka)/100;
+            $create_smena = Smena::create([
+                'personal_id'=>$id,
+                'oklad'=>$oklad,
+                'percent'=>$stavka,
+                'acrued'=>$accrued,
+                'user_id'=>$user->id
+            ]);
+            $b = Salary::where('personal_id', $id)->orderBy('id', 'DESC')->select('balance')->first();
+            $balance = 0;
+            if ($b != null) {
+                $balance = $b->balance;
+            }
+            $balance = $accrued + $balance;
+            $create_salary = Salary::create([
+                'personal_id' =>$id,
+                'accrued' =>$accrued,
+                'balance' => $balance,
+                'description' => 'Оклад:'.$stavka.'%',
+                'user_id' =>$user->id,
+            ]);
+        }
+       
+    }
+    public function smena_top(){
+        $data = DB::table('smenas')->leftJoin('users as personals','smenas.personal_id','=','personals.id')->leftJoin('users','smenas.user_id','=','users.id')->take(100)->orderBy('smenas.id','desc')
+        ->select('smenas.id as id','smenas.created_at as created_at','personals.name as personal','personals.email as email','personals.grafik as grafik','smenas.oklad as oklad','smenas.percent as stavka','smenas.acrued as acrued','users.name as user')->get();
+        return $data;
     }
 }

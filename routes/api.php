@@ -67,6 +67,9 @@ Route::post('/managment/update_application',[ManegmantController::class,'update_
 Route::post('/managment/exelrazbivka',[ManegmantController::class,'exelRazbivka'])->middleware('auth:sanctum');
 Route::post('/managment/merchandis_create',[ManegmantController::class,'merchandis_create'])->middleware('auth:sanctum');
 Route::post('/managment/merchandis_row',[ManegmantController::class,'merchandis_row'])->middleware('auth:sanctum');
+Route::post('/managment/smena',[ManegmantController::class,'smena'])->middleware('auth:sanctum');
+Route::post('/managment/smena_insert',[ManegmantController::class,'smena_insert'])->middleware('auth:sanctum');
+Route::post('/managment/smena_top',[ManegmantController::class,'smena_top'])->middleware('auth:sanctum');
 
 
 Route::post('/task/createarticle',[TaskController::class,'createArticle'])->middleware('auth:sanctum');
@@ -124,5 +127,6 @@ Route::post('/accounting/new_agr',[AccountingController::class,'new_agr'])->midd
 Route::post('/accounting/agr_row_request',[AccountingController::class,'agr_row_request'])->middleware('auth:sanctum');
 Route::post('/accounting/agr_delete',[AccountingController::class,'agr_delete'])->middleware('auth:sanctum');
 Route::post('/accounting/service_price',[AccountingController::class,'service_price'])->middleware('auth:sanctum');
+Route::post('/accounting/servise_actual_price',[AccountingController::class,'servise_actual_price'])->middleware('auth:sanctum');
 
 

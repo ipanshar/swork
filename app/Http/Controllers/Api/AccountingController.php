@@ -285,7 +285,7 @@ class AccountingController extends Controller
         $data['created_at'] = $invoice->created_at;
         $data['counterparty'] = $invoice->counterparty;
         $data['organizations'] = DB::table('entries')->where('entries.invoice_id', $request->id)->leftJoin('organizations', 'entries.organization_id', '=', 'organizations.id')
-            ->groupBy('organizations.id')->select('organizations.id as organization_id', DB::raw('CONCAT(organizations.name,case when organizations.inn >0 then concat(" - ИНН:", organizations.inn) else "" end)as org_name'))->get();
+            ->groupBy('organizations.id','organizations.name','organizations.inn')->select('organizations.id as organization_id',  DB::raw('CONCAT(organizations.name, CASE WHEN organizations.inn > 0 then CONCAT(" - ИНН:", organizations.inn) ELSE "" END)as org_name'))->get();
         $data['entries'] = DB::table('entries')->where('entries.invoice_id', $request->id)
             ->leftJoin('organizations', 'entries.organization_id', '=', 'organizations.id')
             ->leftJoin('subjects', 'entries.subject_id', '=', 'subjects.id')->leftJoin('services', 'entries.service_id', '=', 'services.id')
@@ -320,10 +320,15 @@ class AccountingController extends Controller
         $entries = Entries::where('invoice_id', $request->id)->update(['invoice_id' => 0]);
     }
     public function counterparties()
-    {
-        $counterparties = DB::table('counterparties')->leftJoin('invoices', 'counterparties.id', '=', 'invoices.counterparty_id')->selectRaw('counterparties.id as value,CONCAT(counterparties.code,"-", counterparties.name)as label, sum(invoices.accrual) as accrual,sum(invoices.payment) as payment')->groupBy('counterparties.id')->get();
-
-        return $counterparties;
+    {  $counterparties =  Counterparty::get();
+        $data=[];
+        foreach($counterparties as $counter){
+            $accrual = Invoice::where('counterparty_id', $counter->id)->sum('accrual');
+            $payment = Invoice::where('counterparty_id', $counter->id)->sum('payment');
+            $val=['value'=>$counter->id,'label'=>$counter->code.'-'.$counter->name,'accrual'=>$accrual,'payment'=>$payment];
+            array_push($data,$val);
+        }
+        return $data;
     }
     public function items()
     {
@@ -599,6 +604,12 @@ class AccountingController extends Controller
             ];
             array_push($data,$val);
         }
+        return $data;
+    }
+    public function servise_actual_price()
+    {
+        $data = DB::table('categories')->whereIn('categories.id', [1, 2, 6])->leftJoin('services','categories.id','=','services.category_id')->select('services.id as id', 'categories.name as category','services.name as service','services.price as price')
+        ->orderBy('categories.name')->get();
         return $data;
     }
 }

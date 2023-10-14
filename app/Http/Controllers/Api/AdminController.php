@@ -17,7 +17,7 @@ class AdminController extends Controller
 {
     public function users()
     {
-        $users = DB::table('users')->select('id','name', 'email', 'level','oklad','bonus','created_at')->get();
+        $users = DB::table('users')->select('id','name', 'email', 'level','grafik','oklad','bonus','created_at')->get();
         return $users;
     }
 
@@ -27,6 +27,7 @@ class AdminController extends Controller
         if($user->level>3){
              $update = User::where('id',$request->id)->update([
             'level'=>$request->level,
+            'grafik'=>$request->grafik,
             'oklad'=>$request->oklad,
             'bonus'=>$request->bonus,
         ]);
