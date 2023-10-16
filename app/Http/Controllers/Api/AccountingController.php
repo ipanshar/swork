@@ -399,7 +399,10 @@ class AccountingController extends Controller
             'description' => $description,
             'user_id' => $user_id,
         ]);
-        $this->bonus($incoming, $expense, $user_id);
+        if($item_id!=9){
+            $this->bonus($incoming, $expense, $user_id);
+        }
+        
         return $cashbox->id;
     }
     public function bonus($accrued, $held, $user_id)
@@ -459,17 +462,23 @@ class AccountingController extends Controller
     //
     public function cashbox_top()
     {
-        $cashbox = DB::table('cashboxes')->leftJoin('items', 'cashboxes.item_id', '=', 'items.id')->leftJoin('users as personal', 'cashboxes.personal_id', '=', 'personal.id')
+        $cashbox['incoming'] = Cashbox::sum('incoming');
+        $cashbox['expense'] = Cashbox::sum('expense');
+
+        $cashbox['cashboxes'] = DB::table('cashboxes')->leftJoin('items', 'cashboxes.item_id', '=', 'items.id')->leftJoin('users as personal', 'cashboxes.personal_id', '=', 'personal.id')
             ->leftJoin('users', 'cashboxes.user_id', '=', 'users.id')->leftJoin('counterparties', 'cashboxes.counterparty_id', '=', 'counterparties.id')->orderBy('cashboxes.id', 'DESC')
             ->select('cashboxes.id as id', 'cashboxes.created_at', DB::raw('CASE WHEN cashboxes.personal_id>0 THEN personal.name ELSE counterparties.name END as agent'), 'items.name as item', 'cashboxes.incoming as incoming', 'cashboxes.expense as expense', 'cashboxes.description as description', 'users.name as user')->take(100)->get();
         return $cashbox;
     }
     //
     public function salary_top()
-    {
-        $salary = DB::table('salaries')->leftJoin('users as personal', 'salaries.personal_id', '=', 'personal.id')->leftJoin('users', 'salaries.user_id', '=', 'users.id')->where('salaries.partner', 0)->orderBy('salaries.id', 'DESC')
+    { $salary['accrued'] = Salary::sum('accrued');
+     $salary['held'] = Salary::sum('held');
+    $salary['paid'] = Salary::sum('paid');
+        $salary['salaries'] = DB::table('salaries')->leftJoin('users as personal', 'salaries.personal_id', '=', 'personal.id')->leftJoin('users', 'salaries.user_id', '=', 'users.id')->where('salaries.partner', 0)->orderBy('salaries.id', 'DESC')
             ->select('salaries.id as id', 'salaries.created_at as created_at', 'personal.name as personal', 'salaries.accrued', 'salaries.held as held', 'salaries.paid as paid', 'salaries.balance as balance', 'users.name as user', 'salaries.description as description',)->take(100)->get();
-        return $salary;
+       
+            return $salary;
     }
     public function salary_calculation(Request $request)
     {

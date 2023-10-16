@@ -708,6 +708,7 @@ class ManegmantController extends Controller
                 'user_id' =>$user->id,
             ]);
         }
+      return  $this->smena_top();
        
     }
     public function smena_top(){

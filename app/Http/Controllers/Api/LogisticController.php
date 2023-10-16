@@ -29,11 +29,11 @@ class LogisticController extends Controller
         
 
         $status=Status::where('name',$request->status)->first();
-        $box=Box::where('id',$request->id)->first();
-        $box->status_id=$status->id;
-        $box->save();
-        return $request->id;
+        $box=Box::whereIn('id',$request->id)->update(['status_id'=>$status->id]);
+        $boxes = DB::table('boxes')->where('boxes.organization_id','=',$request->organization_id)->leftJoin('statuses','boxes.status_id','=','statuses.id')->select('boxes.id as id','boxes.name as box','statuses.name as status')->get();
+        return $boxes;
     }
+ 
     
     public function razbivkaBoxes(Request $request){
        
