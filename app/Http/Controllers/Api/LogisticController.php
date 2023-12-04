@@ -20,7 +20,7 @@ class LogisticController extends Controller
     public function boxesStatus(Request $request){
         $data=[];
         $status = Status::whereIn('id',[1,7])->select('name')->get();
-        $box = DB::table('boxes')->where('boxes.organization_id','=',$request->id)->leftJoin('statuses','boxes.status_id','=','statuses.id')->select('boxes.id as id','boxes.name as box','statuses.name as status')->get();
+        $box = DB::table('boxes')->where('boxes.organization_id','=',$request->id)->leftJoin('statuses','boxes.status_id','=','statuses.id')->select('boxes.id as id','boxes.name as box','boxes.application_id as application_id','statuses.name as status')->get();
         $data['statuses']=$status;
         $data['boxes']=$box;
         return $data;
@@ -37,8 +37,8 @@ class LogisticController extends Controller
     
     public function razbivkaBoxes(Request $request){
        
-        $data=DB::table('boxes')->leftJoin('operations','boxes.id','=','operations.box_id')->leftJoin('articles','operations.article_id','=','articles.id')->leftJoin('statuses','boxes.status_id','=','statuses.id')->where('boxes.organization_id', $request->id)
-       ->selectRaw('max(operations.id) as id,boxes.application_id as application_id, boxes.name as box, articles.code as code, articles.name as article, articles.size as size, sum(operations.num) as num, statuses.name as status')->groupBy('boxes.application_id','boxes.name', 'articles.code', 'articles.name','articles.size', 'operations.num', 'statuses.name')->get();
+        $data=DB::table('boxes')->Join('operations','boxes.id','=','operations.box_id')->leftJoin('articles','operations.article_id','=','articles.id')->leftJoin('statuses','boxes.status_id','=','statuses.id')->where('boxes.organization_id', $request->id)
+       ->groupBy('application_id','box', 'code', 'article','size', 'status')->selectRaw('max(operations.id) as id,boxes.application_id as application_id, boxes.name as box, articles.code as code, articles.name as article, articles.size as size, sum(operations.num) as num, statuses.name as status')->get();
        return $data;
     }
     public function service_transport(Request $request){

@@ -70,6 +70,9 @@ Route::post('/managment/merchandis_row',[ManegmantController::class,'merchandis_
 Route::post('/managment/smena',[ManegmantController::class,'smena'])->middleware('auth:sanctum');
 Route::post('/managment/smena_insert',[ManegmantController::class,'smena_insert'])->middleware('auth:sanctum');
 Route::post('/managment/smena_top',[ManegmantController::class,'smena_top'])->middleware('auth:sanctum');
+Route::post('/managment/update_organization',[ManegmantController::class,'update_organization'])->middleware('auth:sanctum');
+Route::post('/managment/operations_application',[ManegmantController::class,'operations_application'])->middleware('auth:sanctum');
+Route::post('/managment/update_operation_num',[ManegmantController::class,'update_operation_num'])->middleware('auth:sanctum');
 
 
 Route::post('/task/createarticle',[TaskController::class,'createArticle'])->middleware('auth:sanctum');
@@ -77,6 +80,7 @@ Route::post('/task/updateArticle',[TaskController::class,'updateArticle'])->midd
 Route::post('/task/articles',[TaskController::class,'articles'])->middleware('auth:sanctum');
 Route::post('/task/orglist',[TaskController::class,'orgList'])->middleware('auth:sanctum');
 Route::post('/task/article',[TaskController::class,'article'])->middleware('auth:sanctum');
+Route::post('/task/delete_article',[TaskController::class,'delete_article'])->middleware('auth:sanctum');
 Route::post('/task/sublist',[TaskController::class,'subList'])->middleware('auth:sanctum');
 Route::post('/task/create_box',[TaskController::class,'create_box'])->middleware('auth:sanctum');
 Route::post('/task/app_articles',[TaskController::class,'app_articles'])->middleware('auth:sanctum');
@@ -85,6 +89,9 @@ Route::post('/task/delete_option',[TaskController::class,'delete_option'])->midd
 Route::post('/task/operations_box',[TaskController::class,'operations_box'])->middleware('auth:sanctum');
 Route::post('/task/detal_box',[TaskController::class,'detal_box'])->middleware('auth:sanctum');
 Route::post('/task/delete_box',[TaskController::class,'delete_box'])->middleware('auth:sanctum');
+Route::post('/task/wb_import_articles',[TaskController::class,'wb_import_articles'])->middleware('auth:sanctum');
+Route::post('/task/subjects_country',[TaskController::class,'subjects_country'])->middleware('auth:sanctum');
+Route::post('/task/articles_all__request',[TaskController::class,'articles_all__request'])->middleware('auth:sanctum');
 
 
 
@@ -107,6 +114,7 @@ Route::post('/accounting/app_status_end',[AccountingController::class,'app_statu
 Route::post('/accounting/counter_enties',[AccountingController::class,'counter_enties'])->middleware('auth:sanctum');
 Route::post('/accounting/create_bill',[AccountingController::class,'create_bill'])->middleware('auth:sanctum');
 Route::post('/accounting/invoice_view',[AccountingController::class,'invoice_view'])->middleware('auth:sanctum');
+Route::post('/accounting/check_view',[AccountingController::class,'check_view'])->middleware('auth:sanctum');
 Route::post('/accounting/coun_journal',[AccountingController::class,'coun_journal'])->middleware('auth:sanctum');
 Route::post('/accounting/delete_invoice',[AccountingController::class,'delete_invoice'])->middleware('auth:sanctum');
 Route::post('/accounting/counterparties',[AccountingController::class,'counterparties'])->middleware('auth:sanctum');

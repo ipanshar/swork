@@ -14,6 +14,12 @@ class Article extends Model
         'size',
         'subject_id',
         'organization_id',
-        'user_id'
+        'user_id',
+        'brand_id',
+        'color_id',
+        'country_id',
+        'compound',
+        'rus_size',
+        'title',
     ];
 }

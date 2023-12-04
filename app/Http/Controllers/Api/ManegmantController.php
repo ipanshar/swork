@@ -238,10 +238,17 @@ class ManegmantController extends Controller
     //----Выборка организаций
     public function OrganizationsList(Request $request)
     {
-        $OrganizationsList = Organization::select('name', 'inn', 'active')->where('counterparty_id', $request->id)->get();
+        $OrganizationsList = Organization::select('id','name', 'inn', 'active')->where('counterparty_id', $request->id)->get();
         return $OrganizationsList;
     }
-
+public function update_organization(Request $request){
+    $user = User::where('email', $request->uemail)->first();
+    $update = Organization::where('id',$request->id)->update([
+        'name' => $request->name,
+        'inn' => $request->inn,
+        'user_id' => $user->id,
+    ]);
+}
     public function createSubject(Request $request)
     {
 
@@ -715,5 +722,17 @@ class ManegmantController extends Controller
         $data = DB::table('smenas')->leftJoin('users as personals','smenas.personal_id','=','personals.id')->leftJoin('users','smenas.user_id','=','users.id')->take(100)->orderBy('smenas.id','desc')
         ->select('smenas.id as id','smenas.created_at as created_at','personals.name as personal','personals.email as email','personals.grafik as grafik','smenas.oklad as oklad','smenas.percent as stavka','smenas.acrued as acrued','users.name as user')->get();
         return $data;
+    }
+
+    public function operations_application(Request $request){
+        $app=Application::where('id',$request->id)->first();
+        $data['status']=$app->status_id;
+        $data['operations'] = DB::table('operations')->where('operations.application_id','=',$request->id)->leftJoin('boxes','operations.box_id','boxes.id')->leftJoin('articles','operations.article_id','articles.id')->leftJoin('users','operations.user_id','users.id')
+        ->select('operations.id as id','users.name as personal','boxes.name as box','articles.name as article','articles.size as size', 'articles.code as barcode', 'operations.num as quantity')->get();
+    return $data;
+    }
+
+    public function update_operation_num(Request $request){
+        $operation = Operation::where('id',$request->id)->update(['num'=>$request->num]);
     }
 }

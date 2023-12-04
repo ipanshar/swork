@@ -302,6 +302,20 @@ class AccountingController extends Controller
             )->orderBy('entries.id', 'desc')->get();
         return $data;
     }
+    public function check_view(Request $request)
+    {
+        $invoice = DB::table('invoices')->where('invoices.id', $request->id)->leftJoin('counterparties', 'invoices.counterparty_id', '=', 'counterparties.id')
+            ->selectRaw('invoices.payment as payment,invoices.balance as balance, invoices.created_at as created_at,CONCAT(counterparties.code, " - ", counterparties.name) as  counterparty')->first();
+            $cashboxes = DB::table('cashboxes')->where('cashboxes.invoice_id', $request->id)->leftJoin('items', 'cashboxes.item_id', '=', 'items.id')
+            ->select('cashboxes.id as id', 'items.name as item')->first();
+        $data['payment'] = $invoice->payment;
+        $data['balance'] = $invoice->balance;
+        $data['created_at'] = $invoice->created_at;
+        $data['counterparty'] = $invoice->counterparty;
+        $data['cashbox_id'] = $cashboxes->id;
+        $data['item'] =$cashboxes->item;
+        return $data;
+    }
     public function coun_journal(Request $request)
     {
         $accrual = Invoice::where('counterparty_id', $request->id)->sum('accrual');
@@ -309,7 +323,8 @@ class AccountingController extends Controller
         $data['balance'] = $accrual - $payment;
         $data['rows'] = DB::table('invoices')->where('invoices.counterparty_id', $request->id)->leftJoin('users', 'invoices.user_id', '=', 'users.id')
             ->selectRaw('invoices.created_at as public_date,invoices.id as id,
-        CASE WHEN invoices.accrual = 0 AND invoices.payment=0 THEN "Аннулирован" WHEN invoices.accrual > 0 THEN "Счет на оплату" WHEN invoices.payment > 0 THEN "Принят платеж" ELSE "" END as description,
+        CASE WHEN invoices.accrual = 0 AND invoices.payment=0
+         THEN "Аннулирован" WHEN invoices.accrual <> 0 THEN "Счет на оплату" WHEN invoices.payment <> 0 THEN "Принят платеж" ELSE "" END as description,
         invoices.accrual as accrual,invoices.payment as payment,users.name as user')->orderBy('invoices.id', 'desc')->get();
         return $data;
     }
@@ -318,6 +333,7 @@ class AccountingController extends Controller
         $user = User::where('email', $request->email)->first();
         $Invoice = Invoice::where('id', $request->id)->update(['accrual' => 0, 'payment' => 0, 'balance' => 0, 'user_id' => $user->id]);
         $entries = Entries::where('invoice_id', $request->id)->update(['invoice_id' => 0]);
+        $cashbox = Cashbox::where('invoice_id', $request->id)->update(['incoming'=>0,'description'=>'Аннулированно']);
     }
     public function counterparties()
     {  $counterparties =  Counterparty::get();
@@ -388,6 +404,7 @@ class AccountingController extends Controller
     }
     public function insert_cashbox($counterparty_id, $invoice_id, $salary_id, $personal_id, $item_id, $incoming, $expense, $description, $user_id)
     {
+        $bonus=0;
         $cashbox = Cashbox::create([
             'counterparty_id' => $counterparty_id,
             'invoice_id' => $invoice_id,
@@ -399,7 +416,10 @@ class AccountingController extends Controller
             'description' => $description,
             'user_id' => $user_id,
         ]);
-        if($item_id!=9){
+        if($personal_id>0 and $expense>0){
+            $bonus =  User::where('id',$personal_id)->sum('bonus');
+        }
+        if($item_id!=9 and $bonus==0){
             $this->bonus($incoming, $expense, $user_id);
         }
         
