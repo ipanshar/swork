@@ -175,6 +175,7 @@ class TaskController extends Controller
                 $request->all(),
                 [
                     'application_id' => 'required|numeric',
+                    'box_q' => 'required|numeric',
                 ]
             );
             if ($valdateBox->fails()) {
@@ -186,14 +187,17 @@ class TaskController extends Controller
             }
             $rate = Service::where('id', 8)->first();
             $app = Application::where('id', $request->application_id)->first();
-            $box = Box::create([
-                'application_id' => $request->application_id,
-                'rate' => $rate->rate,
-                'user_id' => $user->id,
-                'organization_id' => $app->organization_id,
-            ]);
-            $box->name = 'BOX_' . (10000 + $box->id);
-            $box->save();
+            for ($i = 1; $i <= $request->box_q; $i++) {
+                $box = Box::create([
+                    'application_id' => $request->application_id,
+                    'rate' => $rate->rate,
+                    'user_id' => $user->id,
+                    'organization_id' => $app->organization_id,
+                ]);
+                $box->name = 'BOX_' . (10000 + $box->id);
+                $box->save();
+            }
+
             return response()->json([
                 'status' => true,
                 'box' =>  $box->name,
@@ -292,8 +296,8 @@ class TaskController extends Controller
     {
         $user = User::where('email', $request->email)->first();
         $box = Db::table('boxes')->where('boxes.application_id', '=', $request->application_id)->leftJoin('users', 'boxes.user_id', '=', 'users.id')->select('boxes.id as id', 'boxes.name as name', 'users.name as user')->get();
-        $operations_box = DB::table('operations')->leftJoin('articles', 'operations.article_id', '=', 'articles.id')->where('operations.user_id', "=", $user->id)->where('operations.application_id', $request->application_id)
-            ->select('operations.box_id as box_id', 'operations.id as operation_id', DB::raw('concat( articles.name," sz:", COALESCE(articles.size,"")," шк:", COALESCE(articles.code,"") )as article_name'), 'operations.num')->get();
+        $operations_box = DB::table('operations')->leftJoin('articles', 'operations.article_id', '=', 'articles.id')->leftJoin('users','operations.user_id', "=", 'users.id')->where('operations.application_id', $request->application_id)
+            ->select('operations.box_id as box_id','users.name as user', 'operations.id as operation_id', DB::raw('concat( articles.name,"(", COALESCE(articles.size,""),")", COALESCE(articles.code,"") )as article_name'), DB::raw('concat( articles.name,"(", COALESCE(articles.size,""),")")as article_ss'), 'operations.num')->get();
         $num_all = Operation::where('application_id', $request->application_id)->select(DB::raw('sum(num) as num_all'))->first();
         $num_me = Operation::where('application_id', $request->application_id)->where('user_id', $user->id)->select(DB::raw('sum(num) as num_me'))->first();
         $box_all = Box::where('application_id', $request->application_id)->select(DB::raw('count(id) as box_all, MAX(rate) as rate'))->first();
@@ -323,7 +327,7 @@ class TaskController extends Controller
             $box = Box::where('id', $request->box_id)->first();
             $appl = Application::where('id', $box->application_id)->first();
             if ($appl->status_id == 1) {
-                if ($box->user_id == $user->id) {
+                if ($box->user_id == $user->id or $user->level==5) {
                     Box::where('id', $request->box_id)->delete();
                     Operation::where('box_id', $request->box_id)->delete();
                     return  response()->json([
@@ -335,7 +339,7 @@ class TaskController extends Controller
             return  response()->json([
                 'status' => false,
                 'message' =>  'Не удалось удалить, у вас отстутвуют права'
-            ], 401);
+            ], 500);
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => false,

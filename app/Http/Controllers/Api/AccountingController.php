@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Box;
+use App\Models\Cash;
 use App\Models\Cashbox;
 use App\Models\Counterparty;
 use App\Models\Dogovor;
@@ -14,6 +15,7 @@ use App\Models\Item;
 use App\Models\Merchandise;
 use App\Models\Operation;
 use App\Models\Organization;
+use App\Models\Passive;
 use App\Models\Salary;
 use App\Models\Service;
 use App\Models\Subapplication;
@@ -22,7 +24,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Svg\Tag\Rect;
 
 class AccountingController extends Controller
 {
@@ -167,16 +168,16 @@ class AccountingController extends Controller
             ->leftJoin('counterparties', 'organizations.counterparty_id', '=', 'counterparties.id')->select('applications.id as value', DB::raw("CONCAT(applications.id,'-',organizations.name,'(',counterparties.name,')') as label"))->get();
         return $application;
     }
-    public function price($service_id,$organization_id){
-        $counter = Organization::where('id',$organization_id)->first();
-        $dogovor = Dogovor::where('counterparty_id',$counter->counterparty_id)->where('service_id',$service_id)->first();
-        if($dogovor !=null){
-           return $dogovor->price;
-        }else{
-            $price = Service::where('id',$service_id)->first();
-             return $price->price;
+    public function price($service_id, $organization_id)
+    {
+        $counter = Organization::where('id', $organization_id)->first();
+        $dogovor = Dogovor::where('counterparty_id', $counter->counterparty_id)->where('service_id', $service_id)->first();
+        if ($dogovor != null) {
+            return $dogovor->price;
+        } else {
+            $price = Service::where('id', $service_id)->first();
+            return $price->price;
         }
-       
     }
     public function app_reports(Request $request)
     {
@@ -196,25 +197,25 @@ class AccountingController extends Controller
                 'applications.organization_id as organization_id',
                 DB::raw("CONCAT(applications.id,'-',organizations.name,'(',counterparties.name,')') as organizations")
             )->get();
-            $data=[];
-            foreach($reports as $re){
-                $price = $this->price($re->service_id,$re->organization_id); 
-                $val= [
-                    'id'=>$re->id,
-                    'subject'=>$re->subject,
-                    'subject_id'=>$re->subject_id,
-                    'subject_count'=>$re->subject_count,
-                    'service_id'=>$re->service_id,
-                    'service'=>$re->service,
-                    'service_price'=>$price,
-                    'service_count'=>$re->service_count,
-                    'coment'=>$re->coment,
-                    'public_date'=>$re->public_date,
-                    'organization_id'=>$re->organization_id, 
-                    'organizations'=>$re->organizations
-                ];
-                array_push($data,$val);
-            }
+        $data = [];
+        foreach ($reports as $re) {
+            $price = $this->price($re->service_id, $re->organization_id);
+            $val = [
+                'id' => $re->id,
+                'subject' => $re->subject,
+                'subject_id' => $re->subject_id,
+                'subject_count' => $re->subject_count,
+                'service_id' => $re->service_id,
+                'service' => $re->service,
+                'service_price' => $price,
+                'service_count' => $re->service_count,
+                'coment' => $re->coment,
+                'public_date' => $re->public_date,
+                'organization_id' => $re->organization_id,
+                'organizations' => $re->organizations
+            ];
+            array_push($data, $val);
+        }
         return $data;
     }
     public function app_status_end(Request $request)
@@ -285,7 +286,7 @@ class AccountingController extends Controller
         $data['created_at'] = $invoice->created_at;
         $data['counterparty'] = $invoice->counterparty;
         $data['organizations'] = DB::table('entries')->where('entries.invoice_id', $request->id)->leftJoin('organizations', 'entries.organization_id', '=', 'organizations.id')
-            ->groupBy('organizations.id','organizations.name','organizations.inn')->select('organizations.id as organization_id',  DB::raw('CONCAT(organizations.name, CASE WHEN organizations.inn > 0 then CONCAT(" - ИНН:", organizations.inn) ELSE "" END)as org_name'))->get();
+            ->groupBy('organizations.id', 'organizations.name', 'organizations.inn')->select('organizations.id as organization_id',  DB::raw('CONCAT(organizations.name, CASE WHEN organizations.inn > 0 then CONCAT(" - ИНН:", organizations.inn) ELSE "" END)as org_name'))->get();
         $data['entries'] = DB::table('entries')->where('entries.invoice_id', $request->id)
             ->leftJoin('organizations', 'entries.organization_id', '=', 'organizations.id')
             ->leftJoin('subjects', 'entries.subject_id', '=', 'subjects.id')->leftJoin('services', 'entries.service_id', '=', 'services.id')
@@ -299,21 +300,21 @@ class AccountingController extends Controller
                 'entries.total_sum as total_sum',
                 'entries.coment as coment',
                 'entries.public_date as public_date',
-            )->orderBy('entries.id', 'desc')->get();
+            )->orderBy('entries.public_date')->get();
         return $data;
     }
     public function check_view(Request $request)
     {
         $invoice = DB::table('invoices')->where('invoices.id', $request->id)->leftJoin('counterparties', 'invoices.counterparty_id', '=', 'counterparties.id')
             ->selectRaw('invoices.payment as payment,invoices.balance as balance, invoices.created_at as created_at,CONCAT(counterparties.code, " - ", counterparties.name) as  counterparty')->first();
-            $cashboxes = DB::table('cashboxes')->where('cashboxes.invoice_id', $request->id)->leftJoin('items', 'cashboxes.item_id', '=', 'items.id')
+        $cashboxes = DB::table('cashboxes')->where('cashboxes.invoice_id', $request->id)->leftJoin('items', 'cashboxes.item_id', '=', 'items.id')
             ->select('cashboxes.id as id', 'items.name as item')->first();
         $data['payment'] = $invoice->payment;
         $data['balance'] = $invoice->balance;
         $data['created_at'] = $invoice->created_at;
         $data['counterparty'] = $invoice->counterparty;
         $data['cashbox_id'] = $cashboxes->id;
-        $data['item'] =$cashboxes->item;
+        $data['item'] = $cashboxes->item;
         return $data;
     }
     public function coun_journal(Request $request)
@@ -333,16 +334,17 @@ class AccountingController extends Controller
         $user = User::where('email', $request->email)->first();
         $Invoice = Invoice::where('id', $request->id)->update(['accrual' => 0, 'payment' => 0, 'balance' => 0, 'user_id' => $user->id]);
         $entries = Entries::where('invoice_id', $request->id)->update(['invoice_id' => 0]);
-        $cashbox = Cashbox::where('invoice_id', $request->id)->update(['incoming'=>0,'description'=>'Аннулированно']);
+        $cashbox = Cashbox::where('invoice_id', $request->id)->update(['incoming' => 0, 'description' => 'Аннулированно']);
     }
     public function counterparties()
-    {  $counterparties =  Counterparty::get();
-        $data=[];
-        foreach($counterparties as $counter){
+    {
+        $counterparties =  Counterparty::get();
+        $data = [];
+        foreach ($counterparties as $counter) {
             $accrual = Invoice::where('counterparty_id', $counter->id)->sum('accrual');
             $payment = Invoice::where('counterparty_id', $counter->id)->sum('payment');
-            $val=['value'=>$counter->id,'label'=>$counter->code.'-'.$counter->name,'accrual'=>$accrual,'payment'=>$payment];
-            array_push($data,$val);
+            $val = ['value' => $counter->id, 'label' => $counter->code . '-' . $counter->name, 'accrual' => $accrual, 'payment' => $payment];
+            array_push($data, $val);
         }
         return $data;
     }
@@ -373,7 +375,7 @@ class AccountingController extends Controller
             'balance' => $invoice['balance'] - $request->payment,
             'user_id' => $user->id,
         ]);
-        $cashbox = $this->insert_cashbox($request->counterparty_id, $invoice_id->id, 0, 0, $request->item, $request->payment, 0, $request->description, $user->id);
+        $cashbox = $this->insert_cashbox($request->counterparty_id, $invoice_id->id, 0, 0, $request->item, $request->payment, 0, $request->description, $user->id, $request->cash_id);
         if ($cashbox > 0) {
             return response()->json([
                 'status' => true,
@@ -389,7 +391,7 @@ class AccountingController extends Controller
     public function pay_expense(Request $request)
     {
         $user = User::where('email', $request->email)->first();
-        $cashbox = $this->insert_cashbox($request->counterparty_id, 0, 0, 0, $request->item, 0, $request->payment, $request->description, $user->id);
+        $cashbox = $this->insert_cashbox($request->counterparty_id, 0, 0, 0, $request->item, 0, $request->payment, $request->description, $user->id, $request->cash_id);
         if ($cashbox > 0) {
             return response()->json([
                 'status' => true,
@@ -402,9 +404,9 @@ class AccountingController extends Controller
             ], 401);
         }
     }
-    public function insert_cashbox($counterparty_id, $invoice_id, $salary_id, $personal_id, $item_id, $incoming, $expense, $description, $user_id)
+    public function insert_cashbox($counterparty_id, $invoice_id, $salary_id, $personal_id, $item_id, $incoming, $expense, $description, $user_id, $cash_id)
     {
-        $bonus=0;
+        $bonus = 0;
         $cashbox = Cashbox::create([
             'counterparty_id' => $counterparty_id,
             'invoice_id' => $invoice_id,
@@ -415,14 +417,15 @@ class AccountingController extends Controller
             'expense' => $expense,
             'description' => $description,
             'user_id' => $user_id,
+            'cash_id' => $cash_id,
         ]);
-        if($personal_id>0 and $expense>0){
-            $bonus =  User::where('id',$personal_id)->sum('bonus');
+        if ($personal_id > 0 and $expense > 0) {
+            $bonus =  User::where('id', $personal_id)->sum('bonus');
         }
-        if($item_id!=9 and $bonus==0){
+        if ($item_id != 9 and $bonus == 0) {
             $this->bonus($incoming, $expense, $user_id);
         }
-        
+
         return $cashbox->id;
     }
     public function bonus($accrued, $held, $user_id)
@@ -431,7 +434,7 @@ class AccountingController extends Controller
         foreach ($users as $user) {
             $a = ($accrued * $user->bonus) / 100;
             $h = ($held * $user->bonus) / 100;
-            $this->salary_insert($user->id, $a, $h, 0, '', $user_id, 1);
+            $this->salary_insert($user->id, $a, $h, 0, '', $user_id, 1, 0);
         }
     }
     public function personal()
@@ -440,7 +443,7 @@ class AccountingController extends Controller
         return $personal;
     }
 
-    public function salary_insert($personal_id, $accrued, $held, $paid, $description, $user_id, $partner)
+    public function salary_insert($personal_id, $accrued, $held, $paid, $description, $user_id, $partner, $cash_id)
     {
         $b = Salary::where('personal_id', $personal_id)->orderBy('id', 'DESC')->select('balance')->first();
         $balance = 0;
@@ -459,7 +462,7 @@ class AccountingController extends Controller
             'partner' => $partner,
         ]);
         if ($paid > 0) {
-            $cashbox = $this->insert_cashbox(0, 0, $create->id, $personal_id, 2, 0, $paid, $description, $user_id);
+            $cashbox = $this->insert_cashbox(0, 0, $create->id, $personal_id, 2, 0, $paid, $description, $user_id, $cash_id);
         }
         return $create->id;
     }
@@ -474,7 +477,7 @@ class AccountingController extends Controller
             $description = $request->description;
             $user_id = $user->id;
             $partner = 0;
-            $salary_id = $this->salary_insert($personal_id, $accrued, $held, $paid, $description, $user_id, $partner);
+            $salary_id = $this->salary_insert($personal_id, $accrued, $held, $paid, $description, $user_id, $partner, $request->cash_id);
             return $salary_id;
         }
         return 0;
@@ -482,23 +485,34 @@ class AccountingController extends Controller
     //
     public function cashbox_top()
     {
-        $cashbox['incoming'] = Cashbox::sum('incoming');
-        $cashbox['expense'] = Cashbox::sum('expense');
-
-        $cashbox['cashboxes'] = DB::table('cashboxes')->leftJoin('items', 'cashboxes.item_id', '=', 'items.id')->leftJoin('users as personal', 'cashboxes.personal_id', '=', 'personal.id')
+        $cash = Cash::get();
+        $cashes_balance = [];
+        foreach ($cash as $cs) {
+            $incoming = Cashbox::where('cash_id', $cs->id)->sum('incoming');
+            $expense = Cashbox::where('cash_id', $cs->id)->sum('expense');
+            $val = [
+                'name' => $cs->name,
+                'balance' => round($incoming - $expense, 2)
+            ];
+            array_push($cashes_balance, $val);
+        }
+        $cashbox['cashes_balance'] = $cashes_balance;
+        $cashbox['balance'] = round(Cashbox::sum('incoming') - Cashbox::sum('expense'), 2);
+        $cashbox['cashboxes'] = DB::table('cashboxes')->leftJoin('cashes', 'cashboxes.cash_id', '=', 'cashes.id')->leftJoin('items', 'cashboxes.item_id', '=', 'items.id')->leftJoin('users as personal', 'cashboxes.personal_id', '=', 'personal.id')
             ->leftJoin('users', 'cashboxes.user_id', '=', 'users.id')->leftJoin('counterparties', 'cashboxes.counterparty_id', '=', 'counterparties.id')->orderBy('cashboxes.id', 'DESC')
-            ->select('cashboxes.id as id', 'cashboxes.created_at', DB::raw('CASE WHEN cashboxes.personal_id>0 THEN personal.name ELSE counterparties.name END as agent'), 'items.name as item', 'cashboxes.incoming as incoming', 'cashboxes.expense as expense', 'cashboxes.description as description', 'users.name as user')->take(100)->get();
+            ->select('cashboxes.id as id', 'cashes.name as cash', 'cashboxes.created_at', DB::raw('CASE WHEN cashboxes.personal_id>0 THEN personal.name ELSE counterparties.name END as agent'), 'items.name as item', 'cashboxes.incoming as incoming', 'cashboxes.expense as expense', 'cashboxes.description as description', 'users.name as user')->take(100)->get();
         return $cashbox;
     }
     //
     public function salary_top()
-    { $salary['accrued'] = Salary::sum('accrued');
-     $salary['held'] = Salary::sum('held');
-    $salary['paid'] = Salary::sum('paid');
+    {
+        $salary['accrued'] = Salary::sum('accrued');
+        $salary['held'] = Salary::sum('held');
+        $salary['paid'] = Salary::sum('paid');
         $salary['salaries'] = DB::table('salaries')->leftJoin('users as personal', 'salaries.personal_id', '=', 'personal.id')->leftJoin('users', 'salaries.user_id', '=', 'users.id')->where('salaries.partner', 0)->orderBy('salaries.id', 'DESC')
             ->select('salaries.id as id', 'salaries.created_at as created_at', 'personal.name as personal', 'salaries.accrued', 'salaries.held as held', 'salaries.paid as paid', 'salaries.balance as balance', 'users.name as user', 'salaries.description as description',)->take(100)->get();
-       
-            return $salary;
+
+        return $salary;
     }
     public function salary_calculation(Request $request)
     {
@@ -525,7 +539,7 @@ class AccountingController extends Controller
             $box_sum = DB::table('boxes')->where('boxes.user_id', $user->id)->where('boxes.salary_id', 0)->leftJoin('applications', 'boxes.application_id', '=', 'applications.id')->where('applications.status_id', 4)->sum('boxes.rate');
             $accrued = $box_sum + $work_sum;
             if ($accrued > 0) {
-                $salary_id = $this->salary_insert($user->id, $accrued, 0, 0, 'Выработка', $accounting->id, 0);
+                $salary_id = $this->salary_insert($user->id, $accrued, 0, 0, 'Выработка', $accounting->id, 0, 0);
                 $work_salary = Operation::where('user_id', $user->id)->where('work_sum', '>', 0)->where('salary_id', 0)->update(['salary_id' => $salary_id]);
                 $box_salary = DB::table('boxes')->where('boxes.user_id', $user->id)->where('boxes.salary_id', 0)->leftJoin('applications', 'boxes.application_id', '=', 'applications.id')->where('applications.status_id', 4)
                     ->update(['boxes.salary_id' => $salary_id]);
@@ -540,17 +554,17 @@ class AccountingController extends Controller
             }
             if ($subappTotalSum > 0) {
                 $accruedManager = ($subappTotalSum * 30) / 100;
-                $salary_id_manager = $this->salary_insert($user->id, $accruedManager, 0, 0, 'Бонус менеджера ' . $subappTotalSum . ' * 30%', $accounting->id, 0);
+                $salary_id_manager = $this->salary_insert($user->id, $accruedManager, 0, 0, 'Бонус менеджера ' . $subappTotalSum . ' * 30%', $accounting->id, 0, 0);
                 $applicationUp =  Application::where('salary_id', 0)->where('status_id', 4)->where('update_user_id', $user->id)->update(['salary_id' => $salary_id_manager]);
             }
             $transport = Transport::where('user_id', $user->id,)->where('salary_id', 0)->sum('accrued');
             if ($transport > 0) {
-                $transport_salary_id = $this->salary_insert($user->id, $transport, 0, 0, 'Транспортные услуги', $accounting->id, 0);
+                $transport_salary_id = $this->salary_insert($user->id, $transport, 0, 0, 'Транспортные услуги', $accounting->id, 0, 0);
                 $transportUp = Transport::where('user_id', $user->id,)->where('salary_id', 0)->update(['salary_id' => $transport_salary_id]);
             }
             $merchand = Merchandise::where('user_id', $user->id,)->where('salary_id', 0)->sum('accrued');
             if ($merchand > 0) {
-                $merchand_salary_id = $this->salary_insert($user->id, $merchand, 0, 0, 'Бонус с продаж', $accounting->id, 0);
+                $merchand_salary_id = $this->salary_insert($user->id, $merchand, 0, 0, 'Бонус с продаж', $accounting->id, 0, 0);
                 $merchandUp = Merchandise::where('user_id', $user->id,)->where('salary_id', 0)->update(['salary_id' => $merchand_salary_id]);
             }
         }
@@ -563,7 +577,7 @@ class AccountingController extends Controller
 
     public function personal_list()
     {
-        $data = DB::table('salaries')->leftJoin('users', 'salaries.personal_id', '=', 'users.id')->groupBy('salaries.personal_id', 'users.name')->selectRaw('salaries.personal_id as id, users.name as name, sum(salaries.accrued) as accrued,sum(salaries.held) as held, sum(salaries.paid) as paid')->get();
+        $data = DB::table('salaries')->leftJoin('users', 'salaries.personal_id', '=', 'users.id')->groupBy('salaries.personal_id', 'users.name')->selectRaw('salaries.personal_id as id, users.name as name, ROUND(sum(salaries.accrued),2) as accrued, ROUND(sum(salaries.held),2) as held, ROUND(sum(salaries.paid),2) as paid')->take(500)->get();
         return $data;
     }
     public function personal_list_id(Request $request)
@@ -575,7 +589,8 @@ class AccountingController extends Controller
             $personal = User::where('email', $request->email)->first();
         }
         $data['personal'] = $personal->name . ' - ' . $personal->email;
-        $data['rows'] = DB::table('salaries')->leftJoin('users', 'salaries.user_id', '=', 'users.id')->where('salaries.personal_id', $personal->id)->select('salaries.id as id', 'salaries.created_at as created_at', 'salaries.accrued as accrued', 'salaries.held as held', 'salaries.paid as paid', 'salaries.balance as balance', 'salaries.description as description', 'users.name as user')->orderBy('id', 'DESC')->get();
+        $data['rows'] = DB::table('salaries')->leftJoin('users', 'salaries.user_id', '=', 'users.id')->where('salaries.personal_id', $personal->id)->select('salaries.id as id', 'salaries.created_at as created_at', 'salaries.accrued as accrued', 'salaries.held as held', 'salaries.paid as paid', 'salaries.balance as balance', 'salaries.description as description', 'users.name as user')->orderBy('id', 'DESC')
+            ->take(500)->get();
         return $data;
     }
 
@@ -609,9 +624,10 @@ class AccountingController extends Controller
         return $data;
     }
     public function agr_delete(Request $request)
-    { $user = User::where('email', $request->email)->first();
-        if($user->level>3){
-             $agr = Dogovor::where('id', $request->id)->delete();
+    {
+        $user = User::where('email', $request->email)->first();
+        if ($user->level > 3) {
+            $agr = Dogovor::where('id', $request->id)->delete();
         }
         return $this->agr_row($request->counterparty_id);
     }
@@ -621,24 +637,146 @@ class AccountingController extends Controller
     }
     public function service_price(Request $request)
     {
-        $service_list = Service::where('category_id','<>',4)->get();
-        $data=[];
-        foreach($service_list as $service){
-            $price = $this->price($service->id,$request->organization_id);
-            $val= [
-                'value'=>$service->id,
-                'label'=>$service->name,
-                'rate'=>$service->rate,
-                'price'=>$price,
+        $service_list = Service::where('category_id', '<>', 4)->get();
+        $data = [];
+        foreach ($service_list as $service) {
+            $price = $this->price($service->id, $request->organization_id);
+            $val = [
+                'value' => $service->id,
+                'label' => $service->name,
+                'rate' => $service->rate,
+                'price' => $price,
             ];
-            array_push($data,$val);
+            array_push($data, $val);
         }
         return $data;
     }
     public function servise_actual_price()
     {
-        $data = DB::table('categories')->whereIn('categories.id', [1, 2, 6])->leftJoin('services','categories.id','=','services.category_id')->select('services.id as id', 'categories.name as category','services.name as service','services.price as price')
-        ->orderBy('categories.name')->get();
+        $data = DB::table('categories')->whereIn('categories.id', [1, 2, 6])->leftJoin('services', 'categories.id', '=', 'services.category_id')->select('services.id as id', 'categories.name as category', 'services.name as service', 'services.price as price', 'services.description as description')
+            ->orderBy('categories.name')->get();
+        return $data;
+    }
+    public function Cash_select()
+    {
+        $cash = Cash::where('blocked', 0)->get();
+        $cashes_balance = [];
+        foreach ($cash as $cs) {
+            $incoming = Cashbox::where('cash_id', $cs->id)->sum('incoming');
+            $expense = Cashbox::where('cash_id', $cs->id)->sum('expense');
+            $val = [
+                'value' => $cs->id,
+                'label' => $cs->name . ': ' . round($incoming - $expense, 2) . 'р.',
+            ];
+            array_push($cashes_balance, $val);
+        }
+        return $cashes_balance;
+    }
+    public function locale_transfer(Request $request)
+    {
+        $item = Item::where('key', 'local_transfer')->first();
+        $user = User::where('email', $request->email)->first();
+        $cashbox1 = $this->insert_cashbox($request->counterparty_id, 0, 0, 0, $item->id, 0, $request->payment, $request->description, $user->id, $request->cash_id);
+        $cashbox2 = $this->insert_cashbox($request->counterparty_id, 0, 0, 0, $item->id, $request->payment, 0, $request->description, $user->id, $request->cash_id2);
+        if ($cashbox1 > 0 && $cashbox2 > 0) {
+            return response()->json([
+                'status' => true,
+                'message' =>  'Успешный перевод',
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => 'Произошла ошибка, обратитесь к администратору'
+            ], 401);
+        }
+    }
+
+    public function totall_report(Request $request)
+    {
+        $user =  User::where('email', $request->email)->first();
+        if ($user->level < 4) {
+            return $user->level;
+        }
+        $counter = Counterparty::where('name', '<>', 'Незнакомый')->get();
+        $data['debt_invoice'] = 0;
+        $data['credit_invoice'] = 0;
+        foreach ($counter as $co) {
+            $accrual = Invoice::where('counterparty_id', $co->id)->sum('accrual');
+            $payment = Invoice::where('counterparty_id', $co->id)->sum('payment');
+            $balance = round($accrual - $payment, 2);
+            if ($balance > 0) {
+                $data['debt_invoice'] = $data['debt_invoice'] + $balance;
+            } else {
+                $abc = abs($balance);
+                $data['credit_invoice'] = $data['credit_invoice'] + $abc;
+            }
+        }
+        $data['salary'] = round(Salary::sum('accrued') - Salary::sum('held') - Salary::sum('paid'), 2);
+        $data['money'] = round(Cashbox::sum('incoming') - Cashbox::sum('expense'), 2);
+        $data['entries'] = round(Entries::where('invoice_id', 0)->sum('total_sum'), 2);
+        $data['passive'] = round(Passive::sum('credit'), 2);
+        $data['balance'] =  round(($data['debt_invoice'] + $data['money'] + $data['entries']) - $data['salary'] - $data['credit_invoice'] - $data['passive'], 2);
+        return $data;
+    }
+
+    public function passivies()
+    {
+        $passive = Passive::get();
+        return $passive;
+    }
+    public function passive_add(Request $request)
+    {
+        $user =  User::where('email', $request->email)->first();
+        if ($user->level < 4) {
+            return $user->level;
+        }
+        $passive = Passive::create([
+            'name' => $request->name,
+            'credit' => $request->credit,
+        ]);
+        return $this->passivies();
+    }
+    public function passive_delete(Request $request)
+    {
+        $user =  User::where('email', $request->email)->first();
+        if ($user->level < 4) {
+            return $user->level;
+        }
+        $passive = Passive::where('id', $request->id)->delete();
+        return $this->passivies();
+    }
+    public function credit_invoice(Request $request)
+    {
+        $user =  User::where('email', $request->email)->first();
+        if ($user->level < 4) {
+            return $user->level;
+        }
+        $counter = Counterparty::where('name', '<>', 'Незнакомый')->get();
+        $data = [];
+        foreach ($counter as $co) {
+            $accrual = Invoice::where('counterparty_id', $co->id)->sum('accrual');
+            $payment = Invoice::where('counterparty_id', $co->id)->sum('payment');
+            $balance = round($accrual - $payment, 2);
+            if ($request->credit == 'credit') {
+                if ($balance < 0) {
+                    $val = [
+                        'id'=>$co->id,
+                        'Name' => $co->name,
+                        'Credit' => $balance
+                    ];
+                    array_push($data, $val);
+                }
+            } elseif ($request->credit == 'debt') {
+                if ($balance > 0) {
+                    $val = [
+                        'id'=>$co->id,
+                        'Name' => $co->name,
+                        'Credit' => $balance
+                    ];
+                    array_push($data, $val);
+                }
+            }
+        }
         return $data;
     }
 }

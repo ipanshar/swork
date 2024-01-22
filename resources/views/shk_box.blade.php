@@ -1,63 +1,92 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta  http-equiv="Content-Type" content="text/html; charset=utf-8">
-<style>
-    @page{   
-        margin-left: 3%;
-        margin-right: 2%;
-        margin-top: 5px;
-        margin-bottom: 0px;
-    }
-    .page-break{
-        page-break-after: always;
-    }
-    .barcode{
-        width: 100%;
-     
-        text-align: center; 
-    }
 
-    .created_at{
-width: 100%;
-text-align: right;
-font-size: 10px;
-font-style: italic;
-    }
-    .articles{
-        width: 100%;
-        height: 50px;
-        font-size: 12px;
-    }
-    .title{
-        text-align: center;
-        text-decoration: dashed;
-        font-size: 15px;
-    }
-    *{ font-family: DejaVu Sans mono !important;}
-</style>
-    </head>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+        @page {
+            margin-left: 3%;
+            margin-right: 2%;
+            margin-top: 5px;
+            margin-bottom: 0px;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        .barcode {
+            width: 100%;
+
+            text-align: center;
+        }
+
+        .created_at {
+            margin: 2%;
+            width: 95%;
+            text-align: right;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .articles {
+            text-align: center;
+            width: 100%;
+            font-style: italic;
+            font-size: 16px;
+            text-decoration: underline;
+        }
+
+        .title {
+            top: 2%;
+            text-align: center;
+            text-decoration: dashed;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .title2 {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+
+        .codegred {
+            left: auto;
+            position: absolute;
+            text-align: center;
+            align-content: center;
+            left: 10%;
+            bottom: 2%;
+            margin: auto 0;
+        }
+
+        * {
+            font-family: DejaVu Sans mono !important;
+        }
+    </style>
+</head>
 <div>
-@foreach($data as $d)
-<div class="title">{{'#'.$title->id.'-'.$title->owner.'-'.$title->name}}</div>
-<div class="created_at">
-    <div>{{$d->created_at}}</div>
-    <div>{{$d->user_name}}</div>
-</div>
-<div class="articles">
-@foreach($operations as $o)
- @if($d->id==$o->box_id)
-{{html_entity_decode($o->name).'('.$o->size.')'.'-'.$o->num.'; '}}
- @endif
-@endforeach
-</div>
- <div class="barcode"><span>{!! DNS1D::getBarcodeHTML($d->box_name,'C128',3.1,75)  !!}</span>
-    <b>{{$d->box_name}}</b>
+    
+  
+   @foreach($data as $d)
+   <div class="title">{{$d['organization']}}</div>
+    <div class="created_at">
+        <div><span>Дата: </span>{{$d['crated_at']}}</div>
+        <div><span>Сформировал: </span>{{$d['user']}}</div>
+    </div>
+    <div class="articles">
+        {{$d['article']}}
+    </div>
+    <div class="codegred">
+        <div class="barcode"><span>{!! DNS1D::getBarcodeHTML($d['box_name'],'C128',2.6,80) !!}</span>
+            <div class="title2">{{$d['box_name']}}</div>
+        </div>
+    </div>
+
+    @if(count($data)>$loop->iteration)
+    <div class="page-break"></div>
+    @endif
+    @endforeach
 </div>
 
-@if(count($data)>$loop->iteration)
-<div class="page-break"></div>
-    @endif
-    
-@endforeach
-</div>
 </html>

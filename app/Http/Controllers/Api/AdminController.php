@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cash;
 use App\Models\Category;
 use App\Models\Service;
 use App\Models\User;
@@ -69,6 +70,7 @@ class AdminController extends Controller
                 'category_id' => $request->category_id,
                 'valuta_id'=>$request->valuta_id,
                 'user_id' => $user->id,
+                'description'=>$request->description,   
             ]);
             return response()->json([
                 'status' => true,
@@ -116,6 +118,7 @@ class AdminController extends Controller
             $service->category_id = $request->category_id;
             $service->valuta_id = $request->valuta_id;
             $service->user_id =  $user->id;
+            $service->description =  $request->description;
             $service->save();
             return response()->json([
                 'status' => true,
@@ -129,7 +132,7 @@ class AdminController extends Controller
         }
     }
     public function services(Request $request){
-        $services = DB::table('services')->where('services.category_id',$request->category_id)->leftJoin('valutas','services.valuta_id','=','valutas.id')->select('services.id','services.name','services.rate','services.price','services.valuta_id','valutas.code',)->orderBy('services.name')->get();
+        $services = DB::table('services')->where('services.category_id',$request->category_id)->leftJoin('valutas','services.valuta_id','=','valutas.id')->select('services.id','services.name','services.rate','services.price','services.valuta_id','valutas.code','services.description')->orderBy('services.name')->get();
         return $services;
     }
 
@@ -142,6 +145,23 @@ class AdminController extends Controller
         $valuta = Valuta::select('id as value', 'code as label')->get();
         return $valuta;
     }
-    
+    public function Cash_add(Request $request){
+        $cash = Cash::create([
+             'name'=>$request->name,
+             'number'=>$request->number
+         ]);
+         return $this->Cash();
+     }
+     public function Cash_up(Request $request){
+         $cash = Cash::where('id',$request->id)->update([
+              'name'=>$request->name,
+              'number'=>$request->number
+          ]);
+          return $this->Cash();
+      }
+     public function Cash(){
+          $rows = Cash::get();
+          return $rows;
+      }
     
 }

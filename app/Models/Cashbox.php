@@ -19,5 +19,6 @@ class Cashbox extends Model
         'description',
         'user_id',
         'cash',
+        'cash_id',
     ];
 }

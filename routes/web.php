@@ -19,3 +19,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 Route::get('api/managment/shk_box',[ManegmantController::class,'shkBox']);
+Route::get('api/managment/shk_bag',[ManegmantController::class,'shkBag']);
